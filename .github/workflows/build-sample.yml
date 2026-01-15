@@ -1,0 +1,186 @@
+name: Build Sample
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+env:
+  NUGET_REPO_NAME: "alex-nuget"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+
+    steps:
+    # Checkout Code
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # set up.NET SDK
+    - name: Setup .NET Core SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.x 
+
+    # This action sets up the JFrog CLI with the Artifactory URL and access token     
+    # - uses: jfrog/setup-jfrog-cli@v4
+    #   env:
+    #     JFROG_URL: ${{ vars.JFROG_URL }}
+    #     JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
+    - uses: jfrog/setup-jfrog-cli@v4
+      env:
+        JFROG_URL: ${{ vars.JFROG_URL }}
+      with:
+        oidc-provider-name: alexwang-github
+          
+    # This command adds a new server configuration to the JFrog CLI, as an alternative for using the setup-jfrog-cli action    
+    - run: |
+        export SERVER_ID="soleng"
+        # export NUGET_REPO_NAME="alex-nuget"
+        jf c add $SERVER_ID --url=${{ vars.JFROG_URL}} --access-token=${{ secrets.ARTIFACTORY_ACCESS_TOKEN }} --interactive=false
+        jf c use $SERVER_ID
+        jf c show
+        jf rt ping
+        jf dotnetc --repo-resolve="${{ env.NUGET_REPO_NAME }}"  --server-id-resolve=$SERVER_ID
+    # Restore Dependencies from Artifactory
+    - name: Restore Dependencies from Artifactory
+      run: |
+        jf rt dotnet restore dotnet-sample/dotnet-sample.sln \
+          --build-name="DotNet-Sample-Build" \
+          --build-number="${{ github.run_id }}"
+      env:
+        DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+    # Build Project
+    - name: Build Project
+      run: |
+        jf rt dotnet build dotnet-sample/dotnet-sample.sln \
+          --no-restore \
+          --build-name="DotNet-Sample-Build" \
+          --build-number="${{ github.run_id }}"
+        
+      env:
+        DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+    # Run Tests
+    - name: Run Tests
+      run: dotnet test dotnet-sample/dotnet-sample.sln --no-build
+
+    # Publish Artifacts
+    - name: Publish Artifacts
+      run: |
+        dotnet publish dotnet-sample/dotnet-sample.sln \
+          --output ./output
+      env:
+        DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+    # Upload Artifacts to Artifactory
+    - name: Upload Artifacts to Artifactory
+      run: |
+        jf rt u "dotnet-sample/bin/Release/*.nupkg" \
+          "${{ env.NUGET_REPO_NAME }}/dotnet-sample" \
+          --build-name="DotNet-Sample-Build" \
+          --build-number="${{ github.run_id }}"
+    # Publish Build Info to Artifactory
+    - name: Publish Build Info to Artifactory
+      run: |
+        jf rt build-publish "DotNet-Sample-Build" "${{ github.run_id }}"
+        jf bs DotNet-Sample-Build "${{ github.run_id }}"   --fail=false
+
+    # Go Project Build
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21.x'
+
+    - name: Build Go Project with JFrog CLI
+      working-directory: ./go-sample
+      run: |
+        jf goc --repo-resolve="alex-go" --server-id-resolve=$SERVER_ID
+        jf rt go build main.go --build-name="Go-Sample-Build" --build-number="${{ github.run_id }}"
+
+    - name: Publish Go Build Info to Artifactory
+      run: |
+        jf rt build-publish "Go-Sample-Build" "${{ github.run_id }}"
+        jf bs Go-Sample-Build "${{ github.run_id }}" --fail=false
+
+    # Build Summary
+    - name: Build Summary
+      if: always()
+      run: |
+        echo "### 🟦 DotNet Build" >> $GITHUB_STEP_SUMMARY
+        echo "- [Artifacts in Artifactory](${{ vars.JFROG_URL }}/ui/repos/tree/General/${{ env.NUGET_REPO_NAME }}/dotnet-sample)" >> $GITHUB_STEP_SUMMARY
+        echo "- [Build Info](${{ vars.JFROG_URL }}/ui/builds/DotNet-Sample-Build/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        echo "### 🟨 Go Build" >> $GITHUB_STEP_SUMMARY
+        echo "- [Artifacts in Artifactory](${{ vars.JFROG_URL }}/ui/repos/tree/General/alex-go/github.com/jfrog-poc-samples/go-sample)" >> $GITHUB_STEP_SUMMARY
+        echo "- [Build Info](${{ vars.JFROG_URL }}/ui/builds/Go-Sample-Build/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        echo "### 🟧 NPM Build" >> $GITHUB_STEP_SUMMARY
+        echo "- [Artifacts in Artifactory](${{ vars.JFROG_URL }}/ui/repos/tree/General/alex-npm/npm-sample)" >> $GITHUB_STEP_SUMMARY
+        echo "- [Build Info](${{ vars.JFROG_URL }}/ui/builds/NPM-Sample-Build/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+        
+    # Setup Java for Maven
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    # Configure Maven to use Artifactory
+    - name: Configure Maven with JFrog CLI
+      run: |
+        jf mvnc --repo-resolve-releases="alex-maven-virtual" \
+                --repo-resolve-snapshots="alex-maven-virtual" \
+                --repo-deploy-releases="alex-maven-virtual" \
+                --repo-deploy-snapshots="alex-maven-virtual" \
+                --server-id-resolve=$SERVER_ID \
+                --server-id-deploy=$SERVER_ID
+
+    # Build Maven Project and deploy artifacts
+    - name: Build Maven Project
+      working-directory: ./maven-sample
+      run: |
+        jf rt mvn install \
+          --build-name="Maven-Sample-Build" \
+          --build-number="${{ github.run_id }}"
+
+    # Publish Maven Build Info to Artifactory
+    - name: Publish Maven Build Info to Artifactory
+      run: |
+        jf rt build-publish "Maven-Sample-Build" "${{ github.run_id }}"
+        jf bs Maven-Sample-Build "${{ github.run_id }}" --fail=false
+
+    # Setup Node.js
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    # Install Dependencies and Run Build
+    - name: Install Dependencies and Build NPM Project
+      working-directory: ./npm-sample
+      run: |
+        jf npm-config --repo-resolve=alex-npm-virtual --repo-deploy=alex-npm-virtual --server-id-resolve=$SERVER_ID
+        jf npm install  \
+          --build-name="NPM-Sample-Build" \
+          --build-number="${{ github.run_id }}"
+
+    # Publish to Artifactory NPM Repo
+    - name: Publish NPM Package to Artifactory
+      working-directory: ./npm-sample
+      run: |
+        jf npm publish \
+          --build-name="NPM-Sample-Build" \
+          --build-number="${{ github.run_id }}"
+
+    # Publish NPM Build Info
+    - name: Publish NPM Build Info to Artifactory
+      run: |
+        jf rt build-publish "NPM-Sample-Build" "${{ github.run_id }}"
+        jf bs NPM-Sample-Build "${{ github.run_id }}" --fail=false
