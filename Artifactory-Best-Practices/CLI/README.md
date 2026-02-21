@@ -1,7 +1,4 @@
 # 🚀 Internal Developer Guide: Authenticated Artifact Downloads via JFrog CLI
-
-As our organization transitions to a strictly authenticated access model for Artifactory to improve our security posture, anonymous (unauthenticated) downloads are no longer supported.
-
 The most efficient and secure way to interact with Artifactory from your local terminal is using the **JFrog CLI**. The CLI wraps standard package managers (Maven, npm, pip, etc.), automatically injecting your credentials so you don't have to hardcode passwords in your local configuration files.
 
 ---
