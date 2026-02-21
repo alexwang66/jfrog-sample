@@ -1,6 +1,6 @@
 # JFrog POC Samples
 
-本仓库包含 JFrog 平台（Artifactory、Xray、Curation 等）的示例项目与客户培训 Workshop 材料，涵盖 Maven、Docker、NPM、Go、.NET、Python 等技术的构建、部署与安全扫描。
+This repository contains sample projects and customer training workshop materials for the JFrog Platform (Artifactory, Xray, Curation, etc.). It covers building, deploying, and security scanning across technologies such as Maven, Docker, NPM, Go, .NET, and Python.
 
 ---
 
