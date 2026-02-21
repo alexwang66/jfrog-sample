@@ -93,6 +93,29 @@ Replace the standard `mvn` command with `jf mvn`. The CLI handles authentication
 jf mvn clean install
 ```
 
+**Deploy to Artifactory:**
+
+```bash
+jf mvn deploy
+```
+
+Optionally with build info for Xray scanning:
+
+```bash
+jf mvn deploy --build-name=<build-name> --build-number=<build-number>
+jf rt bp <build-name> <build-number>
+```
+
+**Sample (e.g. from repo root `maven-sample`):**
+
+```bash
+cd maven-sample
+jf mvnc
+jf mvn clean install
+jf mvn deploy --build-name=my-app --build-number=1
+jf rt bp my-app 1
+```
+
 ### 🐍 Python / Pip (`jf pip`)
 
 **Configure (once per environment):**
@@ -107,7 +130,6 @@ jf pipc
 jf pip install requests
 jf pip install -r requirements.txt
 ```
-
 ### 🐳 Docker (`jf docker`)
 
 **Authenticate Docker daemon:**
@@ -122,6 +144,20 @@ jf docker login <your-server-id>
 
 ```bash
 jf docker pull <your-company>.jfrog.io/<docker-repo>/<image>:<tag>
+```
+
+**Push images:**
+
+```bash
+jf docker push <your-company>.jfrog.io/<docker-repo>/<image>:<tag>
+```
+
+**Sample:**
+
+```bash
+jf docker login <your-server-id>
+docker build -t mycompany.jfrog.io/docker-repo/my-image:1.0.0 .
+jf docker push mycompany.jfrog.io/docker-repo/my-image:1.0.0
 ```
 
 ### 📦 NPM (`jf npm`)
@@ -142,6 +178,21 @@ Replace standard `npm` commands with `jf npm`:
 jf npm install
 ```
 
+**Publish package:**
+
+```bash
+jf npm publish
+```
+
+**Sample (e.g. from repo root `npm-sample`):**
+
+```bash
+cd npm-sample
+jf npmc
+jf npm install
+jf npm publish
+```
+
 ### 🐹 Go (`jf go`)
 
 **Configure (once per project):**
@@ -157,9 +208,26 @@ jf go get <package-name>
 jf go build
 ```
 
+**Publish module:**
+
+```bash
+jf go publish
+```
+
+**Sample (e.g. from repo root `go-sample`):**
+
+```bash
+cd go-sample
+jf goc
+jf go build
+jf go publish
+```
+
 ---
 
-## Step 4: Generic File Downloads (`jf rt dl`)
+## Step 4: Generic File Transfers (`jf rt dl` / `jf rt ul`)
+
+### Download (`jf rt dl`)
 
 If you need to download raw binaries or generic files outside of a package manager, use the `jf rt dl` command.
 
@@ -175,6 +243,28 @@ To avoid recreating the Artifactory folder structure locally, use the `--flat` f
 
 ```bash
 jf rt dl "my-local-repo/path/to/my-artifact.zip" --flat
+```
+
+### Upload (`jf rt ul`)
+
+To upload generic files or binaries to a local repository:
+
+```bash
+jf rt ul "./local-artifact.zip" "my-local-repo/path/to/"
+```
+
+Upload with flat layout (no source path in target):
+
+```bash
+jf rt ul "./local-artifact.zip" "my-local-repo/path/to/" --flat
+```
+
+**Sample:**
+
+```bash
+echo "demo" > demo.txt
+jf rt ul "demo.txt" "my-local-repo/samples/" --flat
+jf rt dl "my-local-repo/samples/demo.txt" . --flat
 ```
 
 ---
