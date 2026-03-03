@@ -8,10 +8,6 @@
 | **Security Team** | Read | Read | Read | Audit and compliance visibility |
 | **Platform Administrator** | Full Control | Full Control | Full Control |   |
 
-
-# 🚀 Internal Developer Guide: Authenticated Artifact Downloads via JFrog CLI
-The most efficient and secure way to interact with Artifactory from your local terminal is using the **JFrog CLI**. The CLI wraps standard package managers (Maven, npm, pip, etc.), automatically injecting your credentials so you don't have to hardcode passwords in your local configuration files.
-
 ---
 
 # 2. High-Level Artifactory Permission Matrix using Project Roles
@@ -55,6 +51,8 @@ Anonymous access is disabled globally.
 
 ---
 # 3. Use JFrog CLI during CI/CD
+The most efficient and secure way to interact with Artifactory from your local terminal is using the **JFrog CLI**. The CLI wraps standard package managers (Maven, npm, pip, etc.), automatically injecting your credentials so you don't have to hardcode passwords in your local configuration files.
+
 ## Step 1: Install the JFrog CLI
 
 Depending on your operating system, install the latest version of the CLI:
