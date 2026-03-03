@@ -1,3 +1,14 @@
+# 📊 High-Level Artifactory Permission Matrix
+
+| Role | Dev Repository | Test Repository | Release Repository | Notes |
+|------|---------------|----------------|-------------------|-------|
+| **Developer** | Read + Deploy | Read | Read | Developers can deploy only to Dev |
+| **CI Server** | Read + Deploy + Delete | Read + Deploy + Annotate| Read + Deploy + Annotate | All promotions handled by pipeline |
+| **Release Engineer** | Read | Read | Read + Deploy + Annotate | No delete in Release |
+| **Security Team** | Read | Read | Read | Audit and compliance visibility |
+| **Platform Administrator** | Full Control | Full Control | Full Control | Restricted to very limited personnel |
+
+
 # 🚀 Internal Developer Guide: Authenticated Artifact Downloads via JFrog CLI
 The most efficient and secure way to interact with Artifactory from your local terminal is using the **JFrog CLI**. The CLI wraps standard package managers (Maven, npm, pip, etc.), automatically injecting your credentials so you don't have to hardcode passwords in your local configuration files.
 
