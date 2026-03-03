@@ -1,4 +1,4 @@
-# 📊 High-Level Artifactory Permission Matrix
+#  High-Level Artifactory Permission Matrix
 
 | Role | Dev Repository | Test Repository | Release Repository | Notes |
 |------|---------------|----------------|-------------------|-------|
