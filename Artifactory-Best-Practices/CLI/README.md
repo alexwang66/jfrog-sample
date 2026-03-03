@@ -6,7 +6,7 @@
 | **CI Server** | Read + Deploy + Delete | Read + Deploy + Annotate| Read + Deploy + Annotate | All promotions handled by pipeline. Add annotation after build promotion, e.g. Add "UI-Test-Passed"="True" as the package property's key and value |
 | **Release Engineer** | Read | Read | Read + Deploy + Annotate | No delete in Release |
 | **Security Team** | Read | Read | Read | Audit and compliance visibility |
-| **Platform Administrator** | Full Control | Full Control | Full Control | Restricted to very limited personnel |
+| **Platform Administrator** | Full Control | Full Control | Full Control |   |
 
 
 # 🚀 Internal Developer Guide: Authenticated Artifact Downloads via JFrog CLI
