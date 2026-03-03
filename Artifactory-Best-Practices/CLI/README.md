@@ -1,4 +1,4 @@
-#  High-Level Artifactory Permission Matrix
+#  1. High-Level Artifactory Permission Matrix using Permission Target
 
 | Role | Dev Repository | Test Repository | Release Repository | Notes |
 |------|---------------|----------------|-------------------|-------|
@@ -14,6 +14,47 @@ The most efficient and secure way to interact with Artifactory from your local t
 
 ---
 
+# 2. High-Level Artifactory Permission Matrix using Project Roles
+
+## 1. Overview
+This defines repository access control using JFrog **Predefined Project Roles** within a Dev / Test / Release environment model.
+
+The goal is to enforce:
+
+- Principle of Least Privilege
+- Environment Segregation
+- Immutable Release Governance
+- Audit Traceability
+- Separation of Duties
+
+Anonymous access is disabled globally.
+
+---
+
+## 2. Repository Environments
+
+| Environment | Purpose |
+|------------|----------|
+| **Dev** | Active development repositories |
+| **Test** | QA / Integration validation repositories |
+| **Release** | Production / Immutable release repositories |
+
+---
+
+## 3. Project Role Permission Matrix
+
+| Project Role | Dev Repositories | Test Repositories | Release Repositories | Typical Responsibility |
+|--------------|------------------|------------------|----------------------|------------------------|
+| **Project Admin** | Full Control | Full Control | Full Control | Manage project resources, repositories, and members |
+| **Developer** | Read + Deploy | Read | Read | Day-to-day development activities |
+| **Contributor** | Read + Deploy + Annotate | Read + Deploy | Read | Advanced development / CI integration |
+| **Release Manager** | Read | Read | Read + Deploy + Annotate | Manage and publish production releases |
+| **Security Manager** | Read | Read | Read | Governance, compliance, and policy oversight |
+| **Viewer** | Read | Read | Read | Read-only access for audit and visibility |
+| **AppTrust Manager** | Read | Read | Read | Manage release trust and distribution governance |
+
+---
+# 3. Use JFrog CLI during CI/CD
 ## Step 1: Install the JFrog CLI
 
 Depending on your operating system, install the latest version of the CLI:
