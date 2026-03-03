@@ -9,7 +9,7 @@ This document describes two high-level permission approaches: **Permission Targe
 Role-based access when using Artifactory **Permission Targets** (Admin → Security → Permission Targets) in a Dev / Test / Release model.
 
 
-| Role                       | Dev Repository         | Test Repository          | Release Repository       | Notes                                                                      |
+| Groups                     | Dev Repository         | Test Repository          | Release Repository       | Notes                                                                      |
 | -------------------------- | ---------------------- | ------------------------ | ------------------------ | -------------------------------------------------------------------------- |
 | **Developer**              | Read + Deploy          | Read                     | Read                     | Deploy only to Dev                                                         |
 | **CI Server**              | Read + Deploy + Delete | Read + Deploy + Annotate | Read + Deploy + Annotate | Pipeline promotions; annotate after promotion (e.g. `UI-Test-Passed=True`) |
