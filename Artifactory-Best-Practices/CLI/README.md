@@ -3,7 +3,7 @@
 | Role | Dev Repository | Test Repository | Release Repository | Notes |
 |------|---------------|----------------|-------------------|-------|
 | **Developer** | Read + Deploy | Read | Read | Developers can deploy only to Dev |
-| **CI Server** | Read + Deploy + Delete | Read + Deploy + Annotate| Read + Deploy + Annotate | All promotions handled by pipeline |
+| **CI Server** | Read + Deploy + Delete | Read + Deploy + Annotate| Read + Deploy + Annotate | All promotions handled by pipeline. Add annotation after build promotion, e.g. Add "UI-Test-Passed"="True" as the package property's key and value |
 | **Release Engineer** | Read | Read | Read + Deploy + Annotate | No delete in Release |
 | **Security Team** | Read | Read | Read | Audit and compliance visibility |
 | **Platform Administrator** | Full Control | Full Control | Full Control | Restricted to very limited personnel |
