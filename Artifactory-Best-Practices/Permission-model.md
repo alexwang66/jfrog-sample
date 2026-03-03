@@ -11,7 +11,7 @@ Role-based access when using Artifactory **Permission Targets** (Admin → Secur
 
 | Groups                     | Dev Repository         | Test Repository          | Release Repository       | Notes                                                                      |
 | -------------------------- | ---------------------- | ------------------------ | ------------------------ | -------------------------------------------------------------------------- |
-| **Developer**              | Read + Deploy          | Read                     | Read                     | Deploy only to Dev                                                         |
+| **Team A Developer**              | Read + Deploy          | Read                     | Read                     | Deploy only to Dev                                                         |
 | **CI Server**              | Read + Deploy + Delete | Read + Deploy + Annotate | Read + Deploy + Annotate | Pipeline promotions; annotate after promotion (e.g. `UI-Test-Passed=True`) |
 | **Release Engineer**       | Read                   | Read                     | Read + Deploy + Annotate | No delete in Release                                                       |
 | **Security Team**          | Read                   | Read                     | Read                     | Audit and compliance                                                       |
