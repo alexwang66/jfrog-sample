@@ -11,10 +11,10 @@ Role-based access when using Artifactory **Permission Targets** (Admin → Secur
 
 | Groups                     | Dev Repository         | Test Repository          | Release Repository       | Notes                                                                      |
 | -------------------------- | ---------------------- | ------------------------ | ------------------------ | -------------------------------------------------------------------------- |
-| **Team A Developer**              | Read + Deploy          | Read                     | Read                     | Deploy only to Dev                                                         |
-| **CI Server**              | Read + Deploy + Delete | Read + Deploy + Annotate | Read + Deploy + Annotate | Pipeline promotions; annotate after promotion (e.g. `UI-Test-Passed=True`) |
-| **Release Engineer**       | Read                   | Read                     | Read + Deploy + Annotate | No delete in Release                                                       |
-| **Security Team**          | Read                   | Read                     | Read                     | Audit and compliance                                                       |
+| **Team A Developer Group**              | Read + Deploy          | Read                     | Read                     | Deploy only to Dev                                                         |
+| **CI Server Group**              | Read + Deploy + Delete | Read + Deploy + Annotate | Read + Deploy + Annotate | Pipeline promotions; annotate after promotion (e.g. `UI-Test-Passed=True`) |
+| **Release Engineer Group**       | Read                   | Read                     | Read + Deploy + Annotate | No delete in Release                                                       |
+| **Security Team Group**          | Read                   | Read                     | Read                     | Audit and compliance                                                       |
 | **Platform Administrator** | Full Control           | Full Control             | Full Control             | —                                                                          |
 
 
