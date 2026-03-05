@@ -7,7 +7,8 @@ if not RT_token:
     raise ValueError("Please set the SOLENG_IO_TOKEN environment variable.")
 
 # Model name
-model_name = "glockr1/ballr7"  # Replace with the model you want to download
+model_name = "Qwen/Qwen3.5-35B-A3B"  # Replace with the model you want to download
+# model_name = "glockr1/ballr7"  # Malicious model for testing.
 
 # Download the model snapshot
 snapshot_download(
