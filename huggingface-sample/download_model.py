@@ -1,6 +1,7 @@
 import os
 from huggingface_hub import snapshot_download
 
+os.environ["HF_HUB_DISABLE_SSL_VERIFICATION"] = "1"
 # Read token from environment variable
 RT_token = os.getenv("SOLENG_IO_TOKEN")
 if not RT_token:
