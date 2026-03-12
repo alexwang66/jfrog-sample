@@ -51,33 +51,6 @@ Included tools:
 
 ---
 
-# Repository Structure
-
-```
-jfrog-sample
-│
-├── workshop
-│   ├── Dockerfile
-│   ├── start-workshop.sh
-│
-├── npm-sample
-│   ├── package.json
-│   └── index.js
-│
-└── scripts
-    └── workshop-init.sh
-```
-
----
-
-# Clone Repository
-
-```bash
-git clone https://github.com/alexwang66/jfrog-sample.git
-cd jfrog-sample/workshop
-```
-
----
 
 # Build Workshop Environment
 
@@ -98,6 +71,15 @@ docker run -it --rm jfrog-npm-workshop
 ```
 
 After the container starts you will be inside the workshop environment.
+
+
+## Clone Repository
+
+```bash
+git clone https://github.com/alexwang66/jfrog-sample.git
+cd jfrog-sample/workshop
+```
+
 
 Navigate to the npm sample project:
 
