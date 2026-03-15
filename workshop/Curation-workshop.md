@@ -1,4 +1,3 @@
-
 # JFrog npm Supply Chain Security Workshop (Curation Focus)
 
 This workshop demonstrates how to protect the npm software supply chain using:
@@ -24,6 +23,8 @@ flowchart LR
     Artifactory --> Curation[Curation Policy Enforcement]
 ```
 
+
+
 Artifactory acts as the **central repository** while Curation enforces package governance policies before dependencies reach developers.
 
 ---
@@ -43,48 +44,43 @@ All other tools run inside the workshop container.
 
 Included tools:
 
-| Tool | Version |
-|-----|------|
-| Node.js | 20 |
-| npm | latest |
-| JFrog CLI | latest |
 
----
+| Tool      | Version |
+| --------- | ------- |
+| Node.js   | 20      |
+| npm       | latest  |
+| JFrog CLI | latest  |
 
-
-# Build Workshop Environment
-
-The Dockerfile is located in the `workshop` directory.
-
-```bash
-docker build -t jfrog-npm-workshop .
-```
 
 ---
 
 # Start Workshop Container
 
+This workshop uses the prebuilt Docker Hub image `alexwang666666/workshop`.
+
+If you are on Apple Silicon or another ARM64 machine, add `--platform linux/amd64` because the image currently does not provide an ARM64 manifest.
+
 Start the workshop environment:
 
 ```bash
-docker run -it --rm jfrog-npm-workshop
+docker rm -f alex-workshop >/dev/null 2>&1 || true
+
+docker run -d \
+  --platform linux/amd64 \
+  --name alex-workshop \
+  alexwang666666/workshop \
+  tail -f /dev/null
+
+docker exec -it alex-workshop bash
 ```
 
 After the container starts you will be inside the workshop environment.
 
-
 ## Clone Repository
 
 ```bash
-git clone https://github.com/alexwang66/jfrog-sample.git
-cd jfrog-sample/workshop
-```
-
-
-Navigate to the npm sample project:
-
-```bash
-cd npm-sample
+git clone https://github.com/alexwang66/jfrog-sample.git /home/workshop/jfrog-sample
+cd /home/workshop/jfrog-sample/npm-sample
 ```
 
 ---
@@ -92,9 +88,12 @@ cd npm-sample
 # Verify Environment
 
 ```bash
+whoami
+pwd
 node -v
 npm -v
 jf --version
+git --version
 ```
 
 ---
@@ -103,40 +102,61 @@ jf --version
 
 Connect the CLI to Artifactory.
 
+Interactive setup:
+
 ```bash
-jf config add
+jf c add artifactory-server
 ```
 
-Example configuration:
+Non-interactive setup:
 
-```
-Server ID: workshop
-Artifactory URL: https://artifactory.company.com
-User: username
-Access Token: ********
+```bash
+jf c add artifactory-server \
+  --url="https://your.artifactory.com" \
+  --user="YOUR_USERNAME" \
+  --access-token="YOUR_ACCESS_TOKEN" \
+  --interactive=false
 ```
 
 Verify configuration:
 
 ```bash
-jf config show
+jf c show artifactory-server
+jf rt ping --server-id=artifactory-server
 ```
 
 ---
 
 # Configure npm Repository
 
-Configure npm to resolve dependencies through Artifactory.
+If you are not sure which npm repositories exist in your JFrog instance, list them first:
 
 ```bash
-jf npm-config
+jf rt curl -s -XGET "/api/repositories" > /tmp/repos.json
+python3 - <<'PY'
+import json
+with open("/tmp/repos.json") as f:
+    data = json.load(f)
+for repo in data:
+    if repo.get("packageType") == "Npm":
+        print(repo.get("key"), repo.get("type"), sep="\t")
+PY
 ```
 
-Example configuration:
+In the validated environment, these repositories were used:
 
-```
-Resolve repository: npm-virtual
-Deploy repository: npm-local
+- Resolve repo: `alex-npm`
+- Deploy repo: `alex-npm-insecure-local`
+
+Configure npm to resolve dependencies through Artifactory:
+
+```bash
+jf npm-config \
+  --server-id-resolve=artifactory-server \
+  --server-id-deploy=artifactory-server \
+  --repo-resolve=alex-npm \
+  --repo-deploy=alex-npm-insecure-local \
+  --global=false
 ```
 
 Dependency flow:
@@ -146,9 +166,9 @@ Developer
    ↓
 npm
    ↓
-Artifactory npm-virtual
+Artifactory alex-npm
    ↓
-npm-remote
+npm remote repositories
    ↓
 npmjs.org
 ```
@@ -157,34 +177,36 @@ npmjs.org
 
 # Step 1 – Normal Dependency Installation
 
-Navigate to the sample project.
-
-```bash
-cd npm-sample
-```
-
 Install dependencies:
 
 ```bash
-jf npm install
+jf npm install --build-name=npm-build --build-number=1
+npm start
 ```
 
 Dependencies will be downloaded through Artifactory.
+
+Expected runtime output:
+
+```text
+Hello from JFrog NPM demo
+```
 
 ---
 
 # Step 2 – Publish Build Info
 
-Publish build metadata to Artifactory.
+Publish the package and build metadata to Artifactory.
 
 ```bash
-jf rt build-publish
+jf npm publish --build-name=npm-build --build-number=1
+jf rt bp npm-build 1
 ```
 
 View build information:
 
 ```
-Artifactory → Builds
+Artifactory → Builds → npm-build → 1
 ```
 
 Build info includes:
@@ -192,6 +214,7 @@ Build info includes:
 - dependency tree
 - modules
 - environment metadata
+- published artifacts
 
 ---
 
@@ -206,13 +229,30 @@ npm-sample/package.json
 Add the dependency:
 
 ```json
-"dependencies": {
+"dependencies": {de
   "lodash": "^4.17.21",
   "@nx/key": "3.2.0"
 }
 ```
 
-The package **@nx/key@3.2.0** has been flagged in security research as containing malicious behavior.
+The package **@nx/[key@3.2.0](mailto:key@3.2.0)** has been flagged in security research as containing malicious behavior.
+
+You can update the file with this script:
+
+```bash
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+package_json = Path("/home/workshop/jfrog-sample/npm-sample/package.json")
+data = json.loads(package_json.read_text())
+deps = data.setdefault("dependencies", {})
+deps["js-yaml"] = "3.14.2"
+deps["@nx/key"] = "3.2.0"
+package_json.write_text(json.dumps(data, indent=2) + "\n")
+print(package_json.read_text())
+PY
+```
 
 ---
 
@@ -221,7 +261,8 @@ The package **@nx/key@3.2.0** has been flagged in security research as containin
 Run:
 
 ```bash
-jf npm install
+rm -rf node_modules package-lock.json
+jf npm install --build-name=npm-build --build-number=2
 ```
 
 If Curation policies are configured correctly, installation will be blocked.
@@ -231,6 +272,8 @@ Example output:
 ```
 Package blocked by JFrog Curation policy
 ```
+
+Depending on the policy, you may also see an error indicating the dependency was denied or blocked during resolution from the Artifactory npm virtual repository.
 
 ---
 
@@ -249,7 +292,7 @@ Example event:
 ```
 Blocked package: @nx/key@3.2.0
 Policy: malicious package protection
-Repository: npm-virtual
+Repository: alex-npm
 User: workshop
 ```
 
@@ -315,22 +358,156 @@ Verify JFrog CLI:
 jf --version
 ```
 
+Verify Artifactory connectivity:
+
+```bash
+jf rt ping --server-id=artifactory-server
+```
+
+List npm repositories again if the configured virtual repo does not exist:
+
+```bash
+jf rt curl -s -XGET "/api/repositories" > /tmp/repos.json
+python3 - <<'PY'
+import json
+with open("/tmp/repos.json") as f:
+    data = json.load(f)
+for repo in data:
+    if repo.get("packageType") == "Npm":
+        print(repo.get("key"), repo.get("type"), sep="\t")
+PY
+```
+
+If you see:
+
+```text
+The repository 'npm-virtual' does not exist.
+```
+
+replace `--repo-resolve` and `--repo-deploy` with repository names that actually exist in your environment.
+
+If you see:
+
+```text
+no matching manifest for linux/arm64/v8 in the manifest list entries
+```
+
+restart the container with:
+
+```bash
+docker run --platform linux/amd64 ...
+```
+
 Ensure your environment can access the Artifactory URL.
+
+---
+
+# One-Shot Demo Script
+
+The following script runs the complete happy-path workshop flow from the host machine.
+
+Replace:
+
+- `YOUR_USERNAME`
+- `YOUR_ACCESS_TOKEN`
+- repository names if your instance uses different npm repos
+
+```bash
+docker rm -f alex-workshop >/dev/null 2>&1 || true
+
+docker run -d \
+  --platform linux/amd64 \
+  --name alex-workshop \
+  alexwang666666/workshop \
+  tail -f /dev/null
+
+docker exec alex-workshop bash -lc '
+set -euo pipefail
+
+export JF_URL="https://your.artifactory.com"
+export JF_USER="YOUR_USERNAME"
+export JF_ACCESS_TOKEN="YOUR_ACCESS_TOKEN"
+export JF_NPM_RESOLVE_REPO="alex-npm"
+export JF_NPM_DEPLOY_REPO="alex-npm-insecure-local"
+
+if [ ! -d /home/workshop/jfrog-sample ]; then
+  git clone https://github.com/alexwang66/jfrog-sample.git /home/workshop/jfrog-sample
+fi
+
+cd /home/workshop/jfrog-sample/npm-sample
+
+jf c rm artifactory-server --quiet >/dev/null 2>&1 || true
+jf c add artifactory-server \
+  --url="$JF_URL" \
+  --user="$JF_USER" \
+  --access-token="$JF_ACCESS_TOKEN" \
+  --interactive=false
+
+jf rt ping --server-id=artifactory-server
+
+jf npm-config \
+  --server-id-resolve=artifactory-server \
+  --server-id-deploy=artifactory-server \
+  --repo-resolve="$JF_NPM_RESOLVE_REPO" \
+  --repo-deploy="$JF_NPM_DEPLOY_REPO" \
+  --global=false
+
+jf npm install --build-name=npm-build --build-number=1
+npm start
+jf npm publish --build-name=npm-build --build-number=1
+jf rt bp npm-build 1
+'
+```
+
+---
+
+# Curation Test Script
+
+The following script modifies the npm sample to include a malicious dependency candidate and then retries installation.
+
+```bash
+docker exec alex-workshop bash -lc '
+set -euo pipefail
+
+cd /home/workshop/jfrog-sample/npm-sample
+
+python3 - <<'"'"'PY'"'"'
+import json
+from pathlib import Path
+
+package_json = Path("package.json")
+data = json.loads(package_json.read_text())
+deps = data.setdefault("dependencies", {})
+deps["js-yaml"] = "3.14.2"
+deps["@nx/key"] = "3.2.0"
+package_json.write_text(json.dumps(data, indent=2) + "\n")
+print(package_json.read_text())
+PY
+
+rm -rf node_modules package-lock.json
+jf npm install --build-name=npm-build --build-number=2
+'
+```
+
+Expected result:
+
+- dependency resolution fails
+- Curation audit events record the blocked package
 
 ---
 
 # Clean Up
 
-Exit container:
+Remove the workshop container:
 
-```
-exit
+```bash
+docker rm -f alex-workshop
 ```
 
-Remove Docker image if necessary:
+Remove the Docker image if necessary:
 
-```
-docker rmi jfrog-npm-workshop
+```bash
+docker rmi alexwang666666/workshop:latest
 ```
 
 ---
@@ -338,13 +515,13 @@ docker rmi jfrog-npm-workshop
 # Resources
 
 JFrog Artifactory  
-https://jfrog.com/artifactory/
+[https://jfrog.com/artifactory/](https://jfrog.com/artifactory/)
 
 JFrog Xray  
-https://jfrog.com/xray/
+[https://jfrog.com/xray/](https://jfrog.com/xray/)
 
 JFrog Curation  
-https://jfrog.com/platform/curation/
+[https://jfrog.com/platform/curation/](https://jfrog.com/platform/curation/)
 
 JFrog CLI  
-https://jfrog.com/getcli/
+[https://jfrog.com/getcli/](https://jfrog.com/getcli/)
