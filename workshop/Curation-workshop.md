@@ -125,6 +125,12 @@ jf c show artifactory-server
 jf rt ping --server-id=artifactory-server
 ```
 
+UI screenshot placeholder:
+
+```text
+[Screenshot: JFrog CLI configuration or successful connectivity check]
+```
+
 ---
 
 # Configure npm Repository
@@ -157,6 +163,12 @@ jf npm-config \
   --repo-resolve=alex-npm \
   --repo-deploy=alex-npm-insecure-local \
   --global=false
+```
+
+UI screenshot placeholder:
+
+```text
+[Screenshot: Artifactory repositories page showing alex-npm and alex-npm-insecure-local]
 ```
 
 Dependency flow:
@@ -192,6 +204,12 @@ Expected runtime output:
 Hello from JFrog NPM demo
 ```
 
+UI screenshot placeholder:
+
+```text
+[Screenshot: Artifactory repository browser showing resolved npm package artifacts]
+```
+
 ---
 
 # Step 2 – Publish Build Info
@@ -216,6 +234,16 @@ Build info includes:
 - environment metadata
 - published artifacts
 
+UI screenshot placeholders:
+
+```text
+[Screenshot: Builds page listing npm-build / 1]
+```
+
+```text
+[Screenshot: Build Info page showing modules, dependencies, and published artifacts]
+```
+
 ---
 
 # Step 3 – Simulate Malicious Dependency
@@ -229,13 +257,13 @@ npm-sample/package.json
 Add the dependency:
 
 ```json
-"dependencies": {de
+"dependencies": {
   "lodash": "^4.17.21",
   "@nx/key": "3.2.0"
 }
 ```
 
-The package **@nx/[key@3.2.0](mailto:key@3.2.0)** has been flagged in security research as containing malicious behavior.
+The package **@nx/key@3.2.0** has been flagged in security research as containing malicious behavior.
 
 You can update the file with this script:
 
@@ -252,6 +280,12 @@ deps["@nx/key"] = "3.2.0"
 package_json.write_text(json.dumps(data, indent=2) + "\n")
 print(package_json.read_text())
 PY
+```
+
+UI screenshot placeholder:
+
+```text
+[Screenshot: package.json showing @nx/key version 3.2.0 added to dependencies]
 ```
 
 ---
@@ -274,6 +308,12 @@ Package blocked by JFrog Curation policy
 ```
 
 Depending on the policy, you may also see an error indicating the dependency was denied or blocked during resolution from the Artifactory npm virtual repository.
+
+UI screenshot placeholder:
+
+```text
+[Screenshot: terminal output showing jf npm install blocked by Curation]
+```
 
 ---
 
@@ -303,6 +343,12 @@ This audit event shows:
 - policy applied
 - requesting user
 
+UI screenshot placeholder:
+
+```text
+[Screenshot: Curation Audit Events page showing blocked package @nx/key@3.2.0]
+```
+
 ---
 
 # Step 6 – Investigate via Xray
@@ -318,6 +364,12 @@ From here you can analyze:
 - dependency tree
 - vulnerability details
 - malicious indicators
+
+UI screenshot placeholder:
+
+```text
+[Screenshot: Xray Violations or package analysis page for the blocked dependency]
+```
 
 ---
 
