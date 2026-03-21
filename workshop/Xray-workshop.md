@@ -130,8 +130,7 @@ The sample currently contains this vulnerable dependency:
 ```json
 "dependencies": {
   "js-yaml": "3.14.1",
-  "lodash": "4.17.10",
-  "nx": "21.5.0"
+  "lodash": "4.17.10"
 }
 ```
 
@@ -277,12 +276,13 @@ Open:
 
 - `Platform` -> `Xray -> Scans List` -> `Builds` -> `npm-build`
 
+Look for findings related to:  
+- Security Overview
+![alt text](images/build-scanlist.png)
 
-Look for findings related to:
-
-- `js-yaml`
-- security vulnerabilities
-- policy violations if a watch and policy are already attached
+- Security vulnerabilities  
+Click Versions, you can see SBOM and all vulnerabilities.
+![alt text](images/vulnerabilities.png)
 
 ### Option B: Trigger a Build Scan from CLI
 
@@ -290,37 +290,46 @@ Look for findings related to:
 jf bs npm-build 1 --rescan=true
 ```
 
+![alt text](images/jf-scan-build.png)
+
 If your environment has policies and watches configured, this command will return the detected violations for the build.
 
 ---
 
-## Step 11: Configure a Simple Policy and Watch
+## Step 10: Configure Security Policy and Watch
 
 If your Xray instance does not yet have policy enforcement for this workshop, create a simple rule set in the UI:
 
-1. Go to `Xray -> Policies`
-2. Create a security policy such as `npm-high-vuln-policy`
-3. Add a rule like:
+1. Go to `Xray -> Watches & Policies`
+2. Create a security policy named as `npm-security-policy`
+3. Add a rule named as `npm-high-vuln-rule`:
    - Severity: `High` and above
-   - Action: notify or fail build
-4. Go to `Xray -> Watches`
-5. Create a watch such as `npm-build-watch`
-6. Attach the policy to:
-   - repository `alex-npm-insecure-local`, or
-   - build `npm-build`
+   - Action: Block Download
+   - Save Policy
+![alt text](images/policy.png)
 
-This makes the workshop more deterministic because the Xray results are attached to a named policy and watch.
+4. Go to `Xray -> Watches & Policies -> Watches`
+5. Create a watch such as `npm-build-watch`
+6. Add Repository & Add Build
+   - repository `jfrogchina-workshop-npm-insecure-local`
+   - build `npm-build`
+7. Manage Policies, select policy `npm-security-policy`
+   ![alt text](images/watch.png)
+
+In this way, we have configured to only focus on vulnerabilities of the high-risk level and above.
+
+Once again, go to the scan result page of npm-build.
+Click `Policy Violations`, only show the vulnerabilities of the high-risk level and above.
+![alt text](images/violations.png)
 
 ---
 
-## Step 12: Remediate the Vulnerability
+## Step 11: Remediate the Vulnerability
 
 Edit the dependency in `package.json`:
 
-```json
-"dependencies": {
-  "js-yaml": "4.1.0"
-}
+```bash
+sed -i 's/"lodash": "4.17.10"/"lodash": "4.17.21"/' package.json
 ```
 
 Then rebuild and publish a new build number:
@@ -335,16 +344,15 @@ jf bs npm-build 2 --rescan=true
 ```
 
 Expected outcome:
-
 - the new build contains the upgraded dependency
 - Xray findings are reduced or cleared, depending on your policy set and Xray data version
+- `Policy Violations` shows nothing, because we no longer have any vulnerabilities at the high-risk level or above.
+![alt text](images/no-violations.png)
 
 ---
 
 ## Validation Checklist
-
 At the end of the workshop you should be able to confirm:
-
 - npm dependencies were resolved through Artifactory
 - build info was published to Artifactory
 - Xray indexed the repository or build
