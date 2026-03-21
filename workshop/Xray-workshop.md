@@ -27,9 +27,8 @@ You need:
 
 This workshop was validated against:
 
-- Docker image: `alexwang666666/workshop:latest`
 - Sample project: `npm-sample`
-- Vulnerable package used for the demo: `js-yaml:3.14.2`
+- Vulnerable package used for the demo: `js-yaml:3.14.1`
 
 ---
 
@@ -48,31 +47,43 @@ flowchart LR
 ```
 
 ---
+## Prerequisite
+### Workshop Base docker image
+Build the Docker image required for the workshop
+```
+docker build -t jfrogchina/workshop:latest .
+```
+
+### JFrog Artifactory Npm repository
+- Remote repo: `jfrogchina-workshop-npm-remote`
+- Local repo: `jfrogchina-workshop-npm-insecure-local`
+- Virtual repo: `jfrogchina-workshop-npm-virtual`
+
+---
 
 ## Step 1: Start the Workshop Container
 
 If you are on Apple Silicon or another ARM64 machine, use `--platform linux/amd64` because this image currently does not provide an ARM64 manifest.
 
 ```bash
-docker rm -f alex-workshop >/dev/null 2>&1 || true
+docker rm -f jfrogchina-workshop >/dev/null 2>&1 || true
 
 docker run -d \
-  --platform linux/amd64 \
-  --name alex-workshop \
-  alexwang666666/workshop \
+  --name jfrogchina-workshop \
+  jfrogchina/workshop \
   tail -f /dev/null
 ```
 
 Check that the container is running:
 
 ```bash
-docker ps --filter name=alex-workshop
+docker ps --filter name=jfrogchina-workshop
 ```
 
 Enter the container:
 
 ```bash
-docker exec -it alex-workshop bash
+docker exec -it jfrogchina-workshop bash
 ```
 
 ---
@@ -102,7 +113,8 @@ Expected result:
 Inside the container:
 
 ```bash
-git clone https://github.com/alexwang66/jfrog-sample.git /home/workshop/jfrog-sample
+git clone https://github.com/alexwang66/jfrog-sample.git 
+
 cd /home/workshop/jfrog-sample/npm-sample
 ```
 
@@ -117,7 +129,7 @@ The sample currently contains this vulnerable dependency:
 
 ```json
 "dependencies": {
-  "js-yaml": "3.14.2"
+  "js-yaml": "3.14.1"
 }
 ```
 
@@ -126,6 +138,12 @@ The sample currently contains this vulnerable dependency:
 ## Step 4: Configure JFrog CLI
 
 Configure JFrog CLI with your Artifactory URL, username, and access token.
+
+Generate your own access token:  
+Edit Profile -> input password -> click [Generate an Identity Token]
+![alt text](./images/generate-accesstoken.png)
+Then copy it for the next step.  
+Warning: Once the dialog box is closed, it will be impossible to copy the token again. You will need to generate a new one.
 
 Interactive form:
 
@@ -157,32 +175,7 @@ OK
 
 ---
 
-## Step 5: Find Available NPM Repositories
-
-If you are not sure which npm repositories exist in your JFrog instance, list them:
-
-```bash
-jf rt curl -s -XGET "/api/repositories" > /tmp/repos.json
-python3 - <<'PY'
-import json
-with open("/tmp/repos.json") as f:
-    data = json.load(f)
-for repo in data:
-    if repo.get("packageType") == "Npm":
-        print(repo.get("key"), repo.get("type"), sep="\t")
-PY
-```
-
-In the validated environment, these repositories were used:
-
-- Resolve repo: `alex-npm`
-- Deploy repo: `alex-npm-insecure-local`
-
-If your environment uses different repository names, replace them in the next steps.
-
----
-
-## Step 6: Configure npm with JFrog CLI
+## Step 5: Configure npm with JFrog CLI
 
 Inside `npm-sample`, configure npm resolution and deployment:
 
@@ -192,8 +185,8 @@ cd /home/workshop/jfrog-sample/npm-sample
 jf npm-config \
   --server-id-resolve=artifactory-server \
   --server-id-deploy=artifactory-server \
-  --repo-resolve=alex-npm \
-  --repo-deploy=alex-npm-insecure-local \
+  --repo-resolve=jfrogchina-workshop-npm-virtual \
+  --repo-deploy=jfrogchina-workshop-npm-virtual \
   --global=false
 ```
 
@@ -205,14 +198,14 @@ This creates the local project configuration under:
 
 ---
 
-## Step 7: Enable Xray Indexing
+## Step 6: Enable Xray Indexing
 
 Before reviewing findings, make sure Xray indexes the repositories and builds used by this workshop.
 
 In the JFrog UI:
 
 1. Go to `Administration -> Xray Settings -> Indexed Resources`
-2. Add your npm local repository, for example `alex-npm-insecure-local`
+2. Add your npm local repository, for example `jfrogchina-workshop-npm-insecure-local`
 3. If you want dependency cache visibility, also add the related virtual or remote repository as needed
 4. Open the build indexing section and add a build pattern:
 
@@ -220,14 +213,18 @@ In the JFrog UI:
 **/*
 ```
 
+![alt text](images/xray-repo-index.png)
+
 Recommended scope for this workshop:
 
 - Indexed repository: the npm local repository used for publish
 - Indexed build pattern: `**/*`
 
+![alt text](images/xray-build-index.png)
+
 ---
 
-## Step 8: Install Dependencies and Collect Build Info
+## Step 7: Install Dependencies and Collect Build Info
 
 Install dependencies through Artifactory and attach build metadata:
 
@@ -249,7 +246,7 @@ Hello from JFrog NPM demo
 
 ---
 
-## Step 9: Publish Package and Build Info
+## Step 8: Publish Package and Build Info
 
 Publish the package and build metadata to Artifactory:
 
@@ -261,11 +258,14 @@ jf rt bp npm-build 1
 Verify in the UI:
 
 - `Artifactory -> Artifacts` shows the published npm package
+![alt text](images/npm-artifact.png)
+
 - `Artifactory -> Builds -> npm-build -> 1` shows dependencies and modules
+![alt text](images/npm-build.png)
 
 ---
 
-## Step 10: Review Xray Findings
+## Step 9: Review Xray Findings
 
 Once the build and repository are indexed, review the findings in one of these ways.
 

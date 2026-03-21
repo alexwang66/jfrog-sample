@@ -32,9 +32,7 @@ RUN mkdir -p /opt \
         | tar -xz -C /opt \
     && ln -s "/opt/apache-maven-${MAVEN_VERSION}" "${MAVEN_HOME}"
 
-RUN curl -fsSL https://getcli.jfrog.io | sh \
-    && install -m 0755 jf /usr/local/bin/jf \
-    && rm -f jf
+RUN curl -fL https://install-cli.jfrog.io | sh
 
 RUN useradd --create-home --shell /bin/bash workshop
 
