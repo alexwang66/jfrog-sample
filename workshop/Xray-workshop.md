@@ -273,9 +273,8 @@ Once the build and repository are indexed, review the findings in one of these w
 
 Open:
 
-- `Xray -> Scans List`
-- `Xray -> Violations`
-- `Artifactory -> Builds -> npm-build -> 1`
+- `Platform` -> `Xray -> Scans List` -> `Builds` -> `npm-build`
+
 
 Look for findings related to:
 
