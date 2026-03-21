@@ -129,7 +129,9 @@ The sample currently contains this vulnerable dependency:
 
 ```json
 "dependencies": {
-  "js-yaml": "3.14.1"
+  "js-yaml": "3.14.1",
+  "lodash": "4.17.10",
+  "nx": "21.5.0"
 }
 ```
 
