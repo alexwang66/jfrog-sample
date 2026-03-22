@@ -1,7 +1,6 @@
 # JFrog npm Supply Chain Security Workshop (Curation Focus)
 
 This workshop demonstrates how to protect the npm software supply chain using:
-
 - JFrog Artifactory
 - JFrog Xray
 - **JFrog Curation**
@@ -23,16 +22,12 @@ flowchart LR
     Artifactory --> Curation[Curation Policy Enforcement]
 ```
 
-
-
 Artifactory acts as the **central repository** while Curation enforces package governance policies before dependencies reach developers.
 
 ---
 
 # Prerequisites
-
 Participants only need:
-
 - Docker
 - Git
 - Access to a JFrog Platform instance with:
@@ -44,34 +39,40 @@ All other tools run inside the workshop container.
 
 Included tools:
 
-
 | Tool      | Version |
 | --------- | ------- |
 | Node.js   | 20      |
 | npm       | latest  |
 | JFrog CLI | latest  |
 
+Workshop Base docker image
+```
+docker build -t jfrogchina/workshop:latest .
+```
+
+JFrog Artifactory Npm repository
+- Remote repo: `jfrogchina-workshop-npm-remote`
+- Local repo: `jfrogchina-workshop-npm-insecure-local`
+- Virtual repo: `jfrogchina-workshop-npm-virtual`
 
 ---
 
 # Start Workshop Container
-
-This workshop uses the prebuilt Docker Hub image `alexwang666666/workshop`.
+This workshop uses the prebuilt Docker image `jfrogchina/workshop`.
 
 If you are on Apple Silicon or another ARM64 machine, add `--platform linux/amd64` because the image currently does not provide an ARM64 manifest.
 
 Start the workshop environment:
 
 ```bash
-docker rm -f alex-workshop >/dev/null 2>&1 || true
+docker rm -f jfrogchina-workshop >/dev/null 2>&1 || true
 
 docker run -d \
-  --platform linux/amd64 \
-  --name alex-workshop \
-  alexwang666666/workshop \
+  --name jfrogchina-workshop \
+  jfrogchina/workshop \
   tail -f /dev/null
 
-docker exec -it alex-workshop bash
+docker exec -it jfrogchina-workshop bash
 ```
 
 After the container starts you will be inside the workshop environment.
@@ -79,7 +80,7 @@ After the container starts you will be inside the workshop environment.
 ## Clone Repository
 
 ```bash
-git clone https://github.com/alexwang66/jfrog-sample.git /home/workshop/jfrog-sample
+git clone https://github.com/alexwang66/jfrog-sample.git 
 cd /home/workshop/jfrog-sample/npm-sample
 ```
 
@@ -135,52 +136,26 @@ UI screenshot placeholder:
 
 # Configure npm Repository
 
-If you are not sure which npm repositories exist in your JFrog instance, list them first:
-
-```bash
-jf rt curl -s -XGET "/api/repositories" > /tmp/repos.json
-python3 - <<'PY'
-import json
-with open("/tmp/repos.json") as f:
-    data = json.load(f)
-for repo in data:
-    if repo.get("packageType") == "Npm":
-        print(repo.get("key"), repo.get("type"), sep="\t")
-PY
-```
-
-In the validated environment, these repositories were used:
-
-- Resolve repo: `alex-npm`
-- Deploy repo: `alex-npm-insecure-local`
-
-Configure npm to resolve dependencies through Artifactory:
-
 ```bash
 jf npm-config \
   --server-id-resolve=artifactory-server \
   --server-id-deploy=artifactory-server \
-  --repo-resolve=alex-npm \
-  --repo-deploy=alex-npm-insecure-local \
+  --repo-resolve=jfrogchina-workshop-npm-virtual \
+  --repo-deploy=jfrogchina-workshop-npm-virtual \
   --global=false
 ```
 
-UI screenshot placeholder:
-
-```text
-[Screenshot: Artifactory repositories page showing alex-npm and alex-npm-insecure-local]
-```
 
 Dependency flow:
 
 ```
 Developer
    ↓
-npm
+npm client
    ↓
-Artifactory alex-npm
+Artifactory `jfrogchina-workshop-npm-virtual`
    ↓
-npm remote repositories
+npm remote repositories `jfrogchina-workshop-npm-remote`
    ↓
 npmjs.org
 ```
@@ -204,12 +179,6 @@ Expected runtime output:
 Hello from JFrog NPM demo
 ```
 
-UI screenshot placeholder:
-
-```text
-[Screenshot: Artifactory repository browser showing resolved npm package artifacts]
-```
-
 ---
 
 # Step 2 – Publish Build Info
@@ -220,29 +189,15 @@ Publish the package and build metadata to Artifactory.
 jf npm publish --build-name=npm-build --build-number=1
 jf rt bp npm-build 1
 ```
+Verify in the UI:
 
-View build information:
+- `Artifactory -> Artifacts` shows the published npm package
+![alt text](images/npm-artifact.png)
 
-```
-Artifactory → Builds → npm-build → 1
-```
+- `Artifactory -> Builds -> npm-build -> 1` shows dependencies and modules
+![alt text](images/npm-build.png)
 
-Build info includes:
 
-- dependency tree
-- modules
-- environment metadata
-- published artifacts
-
-UI screenshot placeholders:
-
-```text
-[Screenshot: Builds page listing npm-build / 1]
-```
-
-```text
-[Screenshot: Build Info page showing modules, dependencies, and published artifacts]
-```
 
 ---
 
