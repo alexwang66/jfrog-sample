@@ -186,112 +186,19 @@ Platform -> Curation -> Policies -> `Create Policy`
 Install dependencies:
 
 ```bash
-jf npm install --build-name=npm-build --build-number=1
-npm start
-```
-
-Dependencies will be downloaded through Artifactory.
-
-Expected runtime output:
-
-```text
-Hello from JFrog NPM demo
-```
-
----
-
-# Step 2 – Publish Build Info
-
-Publish the package and build metadata to Artifactory.
-
-```bash
-jf npm publish --build-name=npm-build --build-number=1
-jf rt bp npm-build 1
-```
-Verify in the UI:
-
-- `Artifactory -> Artifacts` shows the published npm package
-![alt text](images/npm-artifact.png)
-
-- `Artifactory -> Builds -> npm-build -> 1` shows dependencies and modules
-![alt text](images/npm-build.png)
-
-
-
----
-
-# Step 3 – Simulate Malicious Dependency
-
-Edit the demo project:
-
-```
-npm-sample/package.json
-```
-
-Add the dependency:
-
-```json
-"dependencies": {
-  "lodash": "^4.17.21",
-  "@nx/key": "3.2.0"
-}
-```
-
-The package **@nx/key@3.2.0** has been flagged in security research as containing malicious behavior.
-
-You can update the file with this script:
-
-```bash
-python3 - <<'PY'
-import json
-from pathlib import Path
-
-package_json = Path("/home/workshop/jfrog-sample/npm-sample/package.json")
-data = json.loads(package_json.read_text())
-deps = data.setdefault("dependencies", {})
-deps["js-yaml"] = "3.14.2"
-deps["@nx/key"] = "3.2.0"
-package_json.write_text(json.dumps(data, indent=2) + "\n")
-print(package_json.read_text())
-PY
-```
-
-UI screenshot placeholder:
-
-```text
-[Screenshot: package.json showing @nx/key version 3.2.0 added to dependencies]
-```
-
----
-
-# Step 4 – Attempt Install Again
-
-Run:
-
-```bash
 rm -rf node_modules package-lock.json
-jf npm install --build-name=npm-build --build-number=2
+npm cache clean --force
+
+jf npm install --build-name=npm-build --build-number=1
 ```
+Show error message:  
+`due to the following policies violated`
 
-If Curation policies are configured correctly, installation will be blocked.
-
-Example output:
-
-```
-Package blocked by JFrog Curation policy
-```
-
-Depending on the policy, you may also see an error indicating the dependency was denied or blocked during resolution from the Artifactory npm virtual repository.
-
-UI screenshot placeholder:
-
-```text
-[Screenshot: terminal output showing jf npm install blocked by Curation]
-```
+![alt text](images/violated-msg.png)
 
 ---
 
-# Step 5 – Investigate Curation Audit Events
+# Step 3 – Investigate Curation Audit Events
 
 Open the JFrog Platform UI.
 
@@ -301,15 +208,6 @@ Navigate to:
 Curation → Audit Events
 ```
 
-Example event:
-
-```
-Blocked package: @nx/key@3.2.0
-Policy: malicious package protection
-Repository: alex-npm
-User: workshop
-```
-
 This audit event shows:
 
 - blocked dependency
@@ -317,33 +215,56 @@ This audit event shows:
 - policy applied
 - requesting user
 
-UI screenshot placeholder:
-
-```text
-[Screenshot: Curation Audit Events page showing blocked package @nx/key@3.2.0]
-```
+![alt text](images/audit-event.png)
 
 ---
 
-# Step 6 – Investigate via Xray
+# Step 4 – Remediate the Vulnerability
 
-Navigate to:
+Edit the dependency in `package.json`:
 
+```bash
+sed -i 's/"lodash": "4.17.10"/"lodash": "4.17.21"/' package.json
 ```
-Xray → Violations
+
+# Step 5 – Attempt Install Again
+Publish the package and build metadata to Artifactory.
+
+```bash
+rm -rf node_modules package-lock.json
+jf npm install --build-name=npm-build --build-number=2
+jf npm publish --build-name=npm-build --build-number=2
+jf rt bp npm-build 2
 ```
 
-From here you can analyze:
+Verify in the UI:
 
-- dependency tree
-- vulnerability details
-- malicious indicators
+- `Artifactory -> Artifacts` shows the published npm package
+![alt text](images/npm-artifact.png)
 
-UI screenshot placeholder:
+- `Artifactory -> Builds -> npm-build -> 2` shows dependencies and modules
+![alt text](images/npm-build-2.png)
 
-```text
-[Screenshot: Xray Violations or package analysis page for the blocked dependency]
-```
+- `Curation` -> `Audit Events` -> `Approved`  
+We can see the audit logs of the components that meet the security policies being downloaded.
+![alt text](images/approved-audit.png)
+
+
+---
+
+### Option : Review in the JFrog Xray UI
+
+Open:
+
+- `Platform` -> `Xray -> Scans List` -> `Builds` -> `npm-build`
+
+Look for findings related to:  
+- Security Overview
+![alt text](images/build-scanlist.png)
+
+- Security vulnerabilities  
+Click Versions, you can see SBOM and all vulnerabilities.
+![alt text](images/vulnerabilities-2.png)
 
 ---
 
@@ -358,7 +279,7 @@ After completing this workshop participants will understand:
 
 ### Supply Chain Security
 
-- blocking malicious packages using Curation
+- blocking vulnerability or malicious packages using Curation
 - enforcing dependency policies
 - investigating blocked packages using audit events
 
@@ -407,7 +328,7 @@ PY
 If you see:
 
 ```text
-The repository 'npm-virtual' does not exist.
+The repository 'jfrogchina-workshop-npm-virtual' does not exist.
 ```
 
 replace `--repo-resolve` and `--repo-deploy` with repository names that actually exist in your environment.
@@ -439,22 +360,22 @@ Replace:
 - repository names if your instance uses different npm repos
 
 ```bash
-docker rm -f alex-workshop >/dev/null 2>&1 || true
+docker rm -f jfrogchina-workshop >/dev/null 2>&1 || true
 
 docker run -d \
   --platform linux/amd64 \
-  --name alex-workshop \
-  alexwang666666/workshop \
+  --name jfrogchina-workshop \
+  jfrogchina/workshop \
   tail -f /dev/null
 
-docker exec alex-workshop bash -lc '
+docker exec jfrogchina-workshop bash -lc '
 set -euo pipefail
 
 export JF_URL="https://your.artifactory.com"
 export JF_USER="YOUR_USERNAME"
 export JF_ACCESS_TOKEN="YOUR_ACCESS_TOKEN"
-export JF_NPM_RESOLVE_REPO="alex-npm"
-export JF_NPM_DEPLOY_REPO="alex-npm-insecure-local"
+export JF_NPM_RESOLVE_REPO="jfrogchina-workshop-npm-virtual"
+export JF_NPM_DEPLOY_REPO="jfrogchina-workshop-npm-virtual"
 
 if [ ! -d /home/workshop/jfrog-sample ]; then
   git clone https://github.com/alexwang66/jfrog-sample.git /home/workshop/jfrog-sample
@@ -487,34 +408,6 @@ jf rt bp npm-build 1
 
 ---
 
-# Curation Test Script
-
-The following script modifies the npm sample to include a malicious dependency candidate and then retries installation.
-
-```bash
-docker exec alex-workshop bash -lc '
-set -euo pipefail
-
-cd /home/workshop/jfrog-sample/npm-sample
-
-python3 - <<'"'"'PY'"'"'
-import json
-from pathlib import Path
-
-package_json = Path("package.json")
-data = json.loads(package_json.read_text())
-deps = data.setdefault("dependencies", {})
-deps["js-yaml"] = "3.14.2"
-deps["@nx/key"] = "3.2.0"
-package_json.write_text(json.dumps(data, indent=2) + "\n")
-print(package_json.read_text())
-PY
-
-rm -rf node_modules package-lock.json
-jf npm install --build-name=npm-build --build-number=2
-'
-```
-
 Expected result:
 
 - dependency resolution fails
@@ -527,13 +420,13 @@ Expected result:
 Remove the workshop container:
 
 ```bash
-docker rm -f alex-workshop
+docker rm -f jfrogchina-workshop
 ```
 
 Remove the Docker image if necessary:
 
 ```bash
-docker rmi alexwang666666/workshop:latest
+docker rmi jfrogchina/workshop:latest
 ```
 
 ---
