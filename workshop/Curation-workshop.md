@@ -162,6 +162,11 @@ npmjs.org
 
 ---
 
+# Step 1 – Create a Curation Policy
+
+
+---
+
 # Step 1 – Normal Dependency Installation
 
 Install dependencies:
