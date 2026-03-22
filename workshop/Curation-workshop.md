@@ -163,11 +163,25 @@ npmjs.org
 ---
 
 # Step 1 – Create a Curation Policy
+## Enable curation for npm remote repository
+Administration -> Curation Settings -> Remote Repository   
+Choose npm, than enabled `jfrogchina-work-npm-remote`
+![alt text](images/curation-enabled.png)
 
+## Create a Curation Policy
+Platform -> Curation -> Policies -> `Create Policy`  
+- Named as `npm-high-vuln-curation`, next
+- Specific remote repositories, choose `jfrogchina-work-npm-remote`, than save
+![alt text](images/specific-repo.png)
+- Choose `CVE with CVSS score of 9 or above (with or without a fix version available)`
+![alt text](images/condition.png)
+- Select `Block` option
+![alt text](images/block.png)
+- Save this curation policy
 
 ---
 
-# Step 1 – Normal Dependency Installation
+# Step 2 – Dependency Installation
 
 Install dependencies:
 
