@@ -1,0 +1,16 @@
+{
+  "name": "mcp-sample",
+  "version": "1.0.0",
+  "description": "A safe MCP demo that shows why untrusted MCP servers are dangerous",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "mcp-sample": "./server.js"
+  },
+  "scripts": {
+    "start": "node ./server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
