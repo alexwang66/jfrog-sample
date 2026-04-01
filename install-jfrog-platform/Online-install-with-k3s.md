@@ -1,5 +1,7 @@
 # Installation Guide for K3s and JFrog Platform
 
+This document is intended to guide the installation of K3s on a virtual machine in an online environment, and the deployment of the JFrog Platform on K3s using Helm. It is designed for scenarios where the user environment is constrained but allows controlled internet access via a whitelist.
+
 ## Chapter 1. System Requirements
 
 | Item | Requirement |
@@ -24,7 +26,7 @@
 | K3s Install Script | https://get.k3s.io |
 | Helm Install Script | https://helm.sh/docs/intro/install |
 
-### 2.2 K3s Domain Whitelist and Purpose
+### 2.2 K3s and Helm URL Whitelist 
 
 | Domain | Purpose | Required |
 |---|---|---|
@@ -35,6 +37,7 @@
 | `docker.io` | Docker Hub registry endpoint | Yes |
 | `registry-1.docker.io` | Docker Hub image pulls | Yes |
 | `production.cloudflare.docker.com` | Docker Hub CDN | Yes |
+| `get.helm.sh` | Helm install script | Yes |
 
 ### 2.3 Installation Steps
 
@@ -64,7 +67,7 @@ https://docs.k3s.io/installation/airgap?airgap-load-images=Manually+Deploy+Image
 | Check install status | `helm --help` |
 | Create env  | `mkdir -p ~/.kube` |
 | Copy configuration  | `cp /etc/rancher/k3s/k3s.yaml ~/.kube/config` |
-| chmod | `chmod 600 ~/.kube/config` |
+| chmod 600 to configuration| `chmod 600 ~/.kube/config` |
 | Check service | `helm list` |
 
 
@@ -99,7 +102,7 @@ https://docs.k3s.io/installation/airgap?airgap-load-images=Manually+Deploy+Image
 ### 3.3 Installation Commands
 
 
-#### 3.3.1 Helm Example
+#### 3.3.1 Helm install JFrog-Platform 
 
 | Step | Command |
 |---|---|
