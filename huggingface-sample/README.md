@@ -32,7 +32,31 @@ python download_model.py
 📁 Output
 The model will be downloaded and cached locally under the ~/.cache/huggingface directory.
 
-✅ Notes
+Malicious model block download:
+
 Replace openai-community/gpt2 with any other model name you wish to download.
 
+```
+model_name = "glockr1/ballr7"  # Malicious model for testing.
+```
 
+Try rerun the download model command again.
+
+```
+python download_model.py 
+```
+
+📁 Output
+
+```
+huggingface_hub.errors.HfHubHTTPError: 403 Forbidden: None.
+Cannot access content at: https://soleng.jfrog.io/artifactory/api/huggingfaceml/alex-huggingface-remote/api/models/glockr1/ballr7/revision/main.
+Make sure your token has the correct permissions.
+Forbidden: artifact is blocked
+```
+
+The output indicate that the model has been block by JFrog Curation.
+
+Go to Curation -> Audit log for the details:
+
+![JFrog Curation Audit: blocked Hugging Face model](./Block-model.png)
