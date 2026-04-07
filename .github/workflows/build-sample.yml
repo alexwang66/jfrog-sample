@@ -7,11 +7,17 @@ on:
     branches: [ "main" ]
 env:
   NUGET_REPO_NAME: "alex-nuget"
+  SERVER_ID: soleng
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # Used by jfrog/setup-jfrog-cli (OIDC) and all jf commands below
+      JFROG_URL: ${{ vars.JFROG_URL }}
 
     steps:
     # Checkout Code
@@ -35,16 +41,25 @@ jobs:
         JFROG_URL: ${{ vars.JFROG_URL }}
       with:
         oidc-provider-name: alexwang-github
-          
-    # This command adds a new server configuration to the JFrog CLI, as an alternative for using the setup-jfrog-cli action    
-    - run: |
-        export SERVER_ID="soleng"
-        # export NUGET_REPO_NAME="alex-nuget"
-        jf c add $SERVER_ID --url=${{ vars.JFROG_URL}} --access-token=${{ secrets.ARTIFACTORY_ACCESS_TOKEN }} --interactive=false
-        jf c use $SERVER_ID
+
+    - name: Configure JFrog CLI server
+      env:
+        JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+      run: |
+        set -euo pipefail
+        if [ -z "${JFROG_URL:-}" ]; then
+          echo "::error::JFROG_URL is empty. Add repository Actions variable JFROG_URL (Settings → Secrets and variables → Actions → Variables). Fork PRs do not receive vars/secrets."
+          exit 1
+        fi
+        if [ -z "${JF_ACCESS_TOKEN:-}" ]; then
+          echo "::error::ARTIFACTORY_ACCESS_TOKEN secret is not set."
+          exit 1
+        fi
+        jf c add "${SERVER_ID}" --url="${JFROG_URL}" --access-token="${JF_ACCESS_TOKEN}" --interactive=false
+        jf c use "${SERVER_ID}"
         jf c show
         jf rt ping
-        jf dotnetc --repo-resolve="${{ env.NUGET_REPO_NAME }}"  --server-id-resolve=$SERVER_ID
+        jf dotnetc --repo-resolve="${{ env.NUGET_REPO_NAME }}" --server-id-resolve="${SERVER_ID}"
     # Restore Dependencies from Artifactory
     - name: Restore Dependencies from Artifactory
       run: |
