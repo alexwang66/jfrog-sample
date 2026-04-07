@@ -23,11 +23,16 @@ export HF_ENDPOINT=https://acme.jfrog.io/artifactory/api/huggingfaceml/alex-hugg
 export HF_TOKEN=your-artifactory-token
 ```
 
+Run the download model command:
+
+```
+python download_model.py 
+```
+
 📁 Output
 The model will be downloaded and cached locally under the ~/.cache/huggingface directory.
 
 ✅ Notes
 Replace openai-community/gpt2 with any other model name you wish to download.
 
-The snapshot_download() function fetches all necessary files at a specific revision (e.g., "main").
 
