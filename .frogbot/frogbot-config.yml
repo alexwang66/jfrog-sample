@@ -6,7 +6,7 @@
     git:
       # [Mandatory]
       # Name of the git repository to scan
-      repoName: jfrog-poc-samples
+      repoName: jfrog-sample
 # [Mandatory]
     # List of branches to scan
       branches:
