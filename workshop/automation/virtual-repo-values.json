@@ -1,0 +1,20 @@
+[
+  {
+    "key": "workshop-maven-virtual",
+    "packageType": "maven",
+    "rclass": "virtual",
+    "repoLayoutRef": "maven-2-default",
+    "defaultDeploymentRepo": "workshop-maven-dev-local",
+    "externalDependenciesRemoteRepo": "workshop-maven-remote",
+    "repositories": "workshop-maven-dev-local,workshop-maven-qa-local,workshop-maven-prod-local,workshop-maven-remote"
+  },
+  {
+    "key": "workshop-npm-virtual",
+    "packageType": "npm",
+    "rclass": "virtual",
+    "repoLayoutRef": "npm-default",
+    "defaultDeploymentRepo": "workshop-npm-dev-local",
+    "externalDependenciesRemoteRepo": "workshop-npm-remote",
+    "repositories": "workshop-npm-dev-local,workshop-npm-qa-local,workshop-npm-prod-local,workshop-npm-remote"
+  }
+]

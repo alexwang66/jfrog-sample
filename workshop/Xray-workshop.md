@@ -48,11 +48,6 @@ flowchart LR
 
 ---
 ## Prerequisite
-### Workshop Base docker image
-Build the Docker image required for the workshop
-```
-docker build -t jfrogchina/workshop:latest .
-```
 
 ### JFrog Artifactory Npm repository
 - Remote repo: `jfrogchina-workshop-npm-remote`
@@ -63,15 +58,8 @@ docker build -t jfrogchina/workshop:latest .
 
 ## Step 1: Start the Workshop Container
 
-If you are on Apple Silicon or another ARM64 machine, use `--platform linux/amd64` because this image currently does not provide an ARM64 manifest.
-
 ```bash
-docker rm -f jfrogchina-workshop >/dev/null 2>&1 || true
-
-docker run -d \
-  --name jfrogchina-workshop \
-  jfrogchina/workshop \
-  tail -f /dev/null
+docker run -it --rm --name jfrog-workshop alexwang666666/workshop 
 ```
 
 Check that the container is running:

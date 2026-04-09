@@ -1,0 +1,4 @@
+[
+  {"key":"workshop-maven-remote","packageType":"maven","rclass":"remote","url":"https://repo.maven.apache.org/maven2/","repoLayoutRef":"maven-2-default", "xrayIndex":"true"},
+  {"key":"workshop-npm-remote","packageType":"npm","rclass":"remote","url":"https://registry.npmjs.org","repoLayoutRef":"npm-default", "xrayIndex":"true"}
+  ]
