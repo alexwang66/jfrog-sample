@@ -1,32 +1,46 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-set -euo pipefail
+set -eu
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO_KIND="${1:-all}"
 
+build_vars_lines() {
+  python3 - "$1" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+for item in data:
+    repo_type = item.get("rclass", "")
+    xray_enable = str(item.get("xrayIndex", "false")).lower()
+    parts = [
+        f"repo-name={item.get('key', '')}",
+        f"package-type={item.get('packageType', '')}",
+        f"repo-type={repo_type}",
+        f"repo-layout={item.get('repoLayoutRef', '')}",
+        f"xray-enable={xray_enable}",
+    ]
+
+    if repo_type == "remote":
+        parts.append(f"repo-url={item.get('url', '')}")
+    elif repo_type == "virtual":
+        parts.append(f"deploy-repo-name={item.get('defaultDeploymentRepo', '')}")
+        parts.append(f"external-remote-repo-name={item.get('externalDependenciesRemoteRepo', '')}")
+        parts.append(f"repos={item.get('repositories', '')}")
+
+    print(";".join(parts))
+PY
+}
+
 create_repos() {
-  local template_file="$1"
-  local values_file="$2"
+  template_file="$1"
+  values_file="$2"
 
-  for row in $(jq -r '.[] | @base64' "$values_file"); do
-    _jq() {
-      echo "$row" | base64 --decode | jq -r "$1"
-    }
-
-    local repo_type
-    repo_type="$(_jq '.rclass')"
-    local xray_enable
-    xray_enable="$(_jq '.xrayIndex // "false"')"
-    local vars_string
-    vars_string="repo-name=$(_jq '.key');package-type=$(_jq '.packageType');repo-type=${repo_type};repo-layout=$(_jq '.repoLayoutRef');xray-enable=${xray_enable}"
-
-    if [[ "$repo_type" == "remote" ]]; then
-      vars_string="${vars_string};repo-url=$(_jq '.url')"
-    elif [[ "$repo_type" == "virtual" ]]; then
-      vars_string="${vars_string};deploy-repo-name=$(_jq '.defaultDeploymentRepo');external-remote-repo-name=$(_jq '.externalDependenciesRemoteRepo');repos=$(_jq '.repositories')"
-    fi
-
+  build_vars_lines "$values_file" | while IFS= read -r vars_string; do
+    [ -n "$vars_string" ] || continue
     jf rt repo-create "$template_file" --vars "$vars_string"
   done
 }

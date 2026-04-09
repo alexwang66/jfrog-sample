@@ -1,19 +1,29 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-set -euo pipefail
+set -eu
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO_KIND="${1:-all}"
 
+build_key_lines() {
+  python3 - "$1" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+for item in data:
+    print(item.get("key", ""))
+PY
+}
+
 delete_repos() {
-  local values_file="$1"
+  values_file="$1"
 
-  for row in $(jq -r '.[] | @base64' "$values_file"); do
-    _jq() {
-      echo "$row" | base64 --decode | jq -r "$1"
-    }
-
-    jf rt repo-delete "$(_jq '.key')" --quiet
+  build_key_lines "$values_file" | while IFS= read -r repo_key; do
+    [ -n "$repo_key" ] || continue
+    jf rt repo-delete "$repo_key" --quiet
   done
 }
 

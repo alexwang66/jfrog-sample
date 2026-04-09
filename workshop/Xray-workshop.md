@@ -49,10 +49,8 @@ flowchart LR
 ---
 ## Prerequisite
 
-### JFrog Artifactory Npm repository
-- Remote repo: `jfrogchina-workshop-npm-remote`
-- Local repo: `jfrogchina-workshop-npm-insecure-local`
-- Virtual repo: `jfrogchina-workshop-npm-virtual`
+Docker client
+Git
 
 ---
 
@@ -137,23 +135,23 @@ Warning: Once the dialog box is closed, it will be impossible to copy the token 
 Interactive form:
 
 ```bash
-jf c add artifactory-server
+jf c add artifactory
 ```
 
 Non-interactive form:
 
 ```bash
-jf c add artifactory-server \
-  --url="https://your.artifactory.com" \
-  --user="YOUR_USERNAME" \
-  --access-token="YOUR_ACCESS_TOKEN" \
+jf c add artifactory \
+  --url="https://xxx.jfrog.io" \
+  --access-token="token" \
   --interactive=false
+
 ```
 
 Verify connectivity:
 
 ```bash
-jf rt ping --server-id=artifactory-server
+jf rt ping
 ```
 
 Expected output:
@@ -166,16 +164,22 @@ OK
 
 ## Step 5: Configure npm with JFrog CLI
 
+Create repo:
+
+```
+sh 
+```
+
 Inside `npm-sample`, configure npm resolution and deployment:
 
 ```bash
 cd /home/workshop/jfrog-sample/npm-sample
 
 jf npm-config \
-  --server-id-resolve=artifactory-server \
-  --server-id-deploy=artifactory-server \
-  --repo-resolve=jfrogchina-workshop-npm-virtual \
-  --repo-deploy=jfrogchina-workshop-npm-virtual \
+  --server-id-resolve=artifactory \
+  --server-id-deploy=artifactory \
+  --repo-resolve=workshop-npm-virtual \
+  --repo-deploy=workshop-npm-virtual \
   --global=false
 ```
 
@@ -194,7 +198,7 @@ Before reviewing findings, make sure Xray indexes the repositories and builds us
 In the JFrog UI:
 
 1. Go to `Administration -> Xray Settings -> Indexed Resources`
-2. Add your npm local repository, for example `jfrogchina-workshop-npm-insecure-local`
+2. Add your npm local repository, for example `workshop-npm-insecure-local`
 3. If you want dependency cache visibility, also add the related virtual or remote repository as needed
 4. Open the build indexing section and add a build pattern:
 
@@ -299,7 +303,7 @@ If your Xray instance does not yet have policy enforcement for this workshop, cr
 4. Go to `Xray -> Watches & Policies -> Watches`
 5. Create a watch such as `npm-build-watch`
 6. Add Repository & Add Build
-   - repository `jfrogchina-workshop-npm-insecure-local`
+   - repository `workshop-npm-local`
    - build `npm-build`
 7. Manage Policies, select policy `npm-security-policy`
    ![alt text](images/watch.png)
