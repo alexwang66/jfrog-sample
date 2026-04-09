@@ -167,13 +167,13 @@ OK
 Create repo:
 
 ```
-sh 
+cd /home/workshop/jfrog-sample/workshop/automation
+sh ./create-repo.sh 
 ```
 
 Inside `npm-sample`, configure npm resolution and deployment:
 
 ```bash
-cd /home/workshop/jfrog-sample/npm-sample
 
 jf npm-config \
   --server-id-resolve=artifactory \
@@ -198,12 +198,11 @@ Before reviewing findings, make sure Xray indexes the repositories and builds us
 In the JFrog UI:
 
 1. Go to `Administration -> Xray Settings -> Indexed Resources`
-2. Add your npm local repository, for example `workshop-npm-insecure-local`
-3. If you want dependency cache visibility, also add the related virtual or remote repository as needed
-4. Open the build indexing section and add a build pattern:
+2. Add your npm local repository, for example `workshop-npm-local`
+3. Open the build indexing section and add a build pattern:
 
 ```text
-**/*
+*/**
 ```
 
 ![alt text](images/xray-repo-index.png)
@@ -211,7 +210,7 @@ In the JFrog UI:
 Recommended scope for this workshop:
 
 - Indexed repository: the npm local repository used for publish
-- Indexed build pattern: `**/*`
+- Indexed build pattern: `*/**`
 
 ![alt text](images/xray-build-index.png)
 
@@ -244,6 +243,7 @@ Hello from JFrog NPM demo
 Publish the package and build metadata to Artifactory:
 
 ```bash
+cd /home/workshop/jfrog-sample/npm-sample
 jf npm publish --build-name=npm-build --build-number=1
 jf rt bp npm-build 1
 ```
@@ -321,7 +321,7 @@ Click `Policy Violations`, only show the vulnerabilities of the high-risk level 
 Edit the dependency in `package.json`:
 
 ```bash
-sed -i 's/"lodash": "4.17.10"/"lodash": "4.17.21"/' package.json
+sed -i 's/"lodash": "4.17.21"/"lodash": "4.18.1"/' package.json
 ```
 
 Then rebuild and publish a new build number:
@@ -332,7 +332,7 @@ rm -rf node_modules package-lock.json
 jf npm install --build-name=npm-build --build-number=2
 jf npm publish --build-name=npm-build --build-number=2
 jf rt bp npm-build 2
-jf bs npm-build 2 --rescan=true
+jf bs npm-build 2
 ```
 
 Expected outcome:
