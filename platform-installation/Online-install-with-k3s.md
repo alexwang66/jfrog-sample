@@ -48,7 +48,7 @@ This document is intended to guide the installation of K3s on a virtual machine 
 | Install K3s server | `curl -sfL https://get.k3s.io \| sh -` |
 | Check service | `systemctl status k3s` |
 | Check node | `sudo k3s kubectl get nodes` |
-| Check Pods | `sudo k3s kubectl get pods` |
+| Check Pods | `sudo k3s kubectl get pods  -n kube-system` |
 
 
 #### 2.3.2 Air-Gap Installation
