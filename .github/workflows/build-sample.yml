@@ -12,7 +12,12 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # Used by jfrog/setup-jfrog-cli (OIDC) and all jf commands below
+      JFROG_URL: ${{ vars.JFROG_URL }}
 
     steps:
     # Checkout Code

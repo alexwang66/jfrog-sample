@@ -1,6 +1,6 @@
 {
   "name": "jfrog-npm-demo",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "NPM project using JFrog CLI",
   "main": "index.js",
   "scripts": {
@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "js-yaml": "3.14.1",
-    "lodash": "4.17.21"
+    "lodash": "4.17.21",
+    "axios": "1.7.2"
   }
 }
