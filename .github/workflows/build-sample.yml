@@ -8,6 +8,7 @@ on:
 env:
   NUGET_REPO_NAME: "alex-nuget"
   SERVER_ID: soleng
+  MAVEN_VIRTUAL_REPO: "alex-maven-virtual"
 
 jobs:
   build:
@@ -130,6 +131,10 @@ jobs:
         echo "### 🟧 NPM Build" >> $GITHUB_STEP_SUMMARY
         echo "- [Artifacts in Artifactory](${{ vars.JFROG_URL }}/ui/repos/tree/General/alex-npm/npm-sample)" >> $GITHUB_STEP_SUMMARY
         echo "- [Build Info](${{ vars.JFROG_URL }}/ui/builds/NPM-Sample-Build/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        echo "### 🟩 Gradle Android Build" >> $GITHUB_STEP_SUMMARY
+        echo "- [Build Info](${{ vars.JFROG_URL }}/ui/builds/Gradle-Android-Sample-Build/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
         
     # Setup Java for Maven
     - name: Setup Java JDK
@@ -137,6 +142,37 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '17'
+
+    # Setup Android SDK (required for Gradle Android build)
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Install Android SDK packages
+      run: |
+        yes | sdkmanager --licenses
+        sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+    - name: Configure Gradle with JFrog CLI
+      run: |
+        jf gradle-config \
+          --repo-resolve="${{ env.MAVEN_VIRTUAL_REPO }}" \
+          --server-id-resolve=$SERVER_ID \
+          --repo-deploy="${{ env.MAVEN_VIRTUAL_REPO }}" \
+          --server-id-deploy=$SERVER_ID \
+          --use-wrapper=true \
+          --uses-plugin=true
+
+    - name: Build Gradle Android Project and publish artifacts
+      working-directory: ./gradle-android-sample
+      run: |
+        jf gradle clean assembleRelease artifactoryPublish \
+          --build-name="Gradle-Android-Sample-Build" \
+          --build-number="${{ github.run_id }}"
+
+    - name: Publish Gradle Android Build Info to Artifactory
+      run: |
+        jf rt build-publish "Gradle-Android-Sample-Build" "${{ github.run_id }}"
+        jf bs Gradle-Android-Sample-Build "${{ github.run_id }}" --fail=false
 
     # Configure Maven to use Artifactory
     - name: Configure Maven with JFrog CLI
