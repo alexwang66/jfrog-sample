@@ -1,0 +1,22 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    // Allow the JFrog Artifactory Gradle plugin to add its resolution repository.
+    // With FAIL_ON_PROJECT_REPOS Gradle fails the build when plugins add repositories.
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        // AndroidX / Google artifacts
+        google()
+        mavenCentral()
+        
+    }
+}
+
+rootProject.name = 'GradleAndroidExample'
+include ':app'
