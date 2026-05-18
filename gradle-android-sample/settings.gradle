@@ -3,6 +3,10 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
+        // Optional: allow resolving Gradle plugins from Artifactory (used in CI with jfrog CLI)
+        if (System.getenv('JFROG_URL')) {
+            maven { url "${System.getenv('JFROG_URL')}/artifactory/${System.getenv('MAVEN_VIRTUAL_REPO') ?: 'alex-maven-virtual'}" }
+        }
     }
 }
 

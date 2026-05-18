@@ -153,6 +153,7 @@ jobs:
         sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
     - name: Configure Gradle with JFrog CLI
+      working-directory: ./gradle-android-sample
       run: |
         jf gradle-config \
           --repo-resolve="${{ env.MAVEN_VIRTUAL_REPO }}" \

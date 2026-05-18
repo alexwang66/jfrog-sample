@@ -3,6 +3,8 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     // 1. 添加 Maven publish 插件
     id 'maven-publish'
+    // 2. Add Artifactory Gradle plugin (provides artifactoryPublish DSL/task)
+    id 'com.jfrog.artifactory'
 }
 
 android {
