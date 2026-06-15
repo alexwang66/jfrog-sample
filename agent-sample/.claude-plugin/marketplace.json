@@ -1,0 +1,14 @@
+{
+  "name": "alex-agent-plugins-local-fs",
+  "description": "Local-filesystem mirror of the devsecops-helper plugin, for installing into Claude Code while the JFrog zip-url marketplace format is not yet supported by the Claude Code plugin installer.",
+  "owner": {
+    "name": "Alex Wang"
+  },
+  "plugins": [
+    {
+      "name": "devsecops-helper",
+      "source": "./devsecops-helper",
+      "description": "DevSecOps helper: /scan-deps command + release-notes skill."
+    }
+  ]
+}

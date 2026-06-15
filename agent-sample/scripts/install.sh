@@ -13,6 +13,9 @@ REPO="${REPO:-alex-agent-plugins-local}"
 SERVER_ID="${SERVER_ID:-soleng}"
 HARNESS="${HARNESS:-claude}"
 
+# The plugin is published unsigned, so allow install without evidence.
+export JFROG_AGENT_PLUGINS_DISABLE_QUIET_FAILURE=true
+
 EXTRA_ARGS=()
 if [[ -n "${VERSION:-}" ]]; then
   EXTRA_ARGS+=(--version "$VERSION")
