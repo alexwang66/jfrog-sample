@@ -1,0 +1,9 @@
+# Cargo registry pointing at a JFrog Artifactory Cargo repository.
+# Host/repo below are the WEEX POC demo values — change to your own instance.
+# Credentials are NOT here: put the token in ~/.cargo/credentials.toml (see credentials.toml.example).
+
+[registry]
+global-credential-providers = ["cargo:token"]
+
+[registries.artifactory]
+index = "sparse+https://demo.jfrogchina.com/artifactory/api/cargo/alex-cargo-local/index/"

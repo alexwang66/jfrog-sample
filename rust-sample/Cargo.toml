@@ -1,0 +1,8 @@
+[package]
+name = "samplecode"
+version = "0.1.0"
+edition = "2021"
+description = "JFrog Artifactory Cargo (Rust) demo crate for WEEX POC"
+license = "MIT"
+
+[dependencies]
