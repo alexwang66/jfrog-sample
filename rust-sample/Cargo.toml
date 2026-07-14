@@ -6,3 +6,7 @@ description = "JFrog Artifactory Cargo (Rust) demo crate for WEEX POC"
 license = "MIT"
 
 [dependencies]
+# Intentionally vulnerable dependency for the JFrog Xray / Curation POC demo.
+# smallvec 1.6.0 → RUSTSEC-2021-0003 / CVE-2021-25900 (buffer overflow, HIGH, CVSS 7.5).
+# Fixed in 1.6.1. Kept pinned so scans reliably flag a HIGH finding.
+smallvec = "=1.6.0"
