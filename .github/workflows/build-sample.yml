@@ -19,6 +19,10 @@ jobs:
     env:
       # Used by jfrog/setup-jfrog-cli (OIDC) and all jf commands below
       JFROG_URL: ${{ vars.JFROG_URL }}
+      # Enable JFrog CLI Package Alias (Ghost Frog): native npm/go commands are
+      # transparently routed through JFrog CLI (jf npm/jf go) for Artifactory
+      # resolution + build-info. https://docs.jfrog.com/artifactory/docs/jfrog-cli-package-alias
+      JFROG_CLI_GHOST_FROG: "true"
 
     steps:
     # Checkout Code
@@ -52,6 +56,16 @@ jobs:
         jf c show
         jf rt ping
         jf dotnetc --repo-resolve="${{ env.NUGET_REPO_NAME }}"  --server-id-resolve=$SERVER_ID
+
+    # Install JFrog CLI Package Alias (Ghost Frog) for npm & go.
+    # Creates ~/.jfrog/package-alias/bin/{npm,go} symlinks to `jf`. Each npm/go
+    # build step below prepends this dir to PATH so the native command is
+    # intercepted and run as `jf npm`/`jf go` (JFROG_CLI_GHOST_FROG=true).
+    - name: Install JFrog CLI Package Alias (Ghost Frog)
+      run: |
+        jf package-alias install --packages=npm,go
+        jf package-alias status
+
     # Restore Dependencies from Artifactory
     - name: Restore Dependencies from Artifactory
       run: |
@@ -103,11 +117,19 @@ jobs:
       with:
         go-version: '1.21.x'
 
-    - name: Build Go Project with JFrog CLI
+    - name: Build Go Project (native `go` via Ghost Frog alias)
       working-directory: ./go-sample
+      env:
+        # Native commands can't take --build-name/--build-number, so pass them via env
+        JFROG_CLI_BUILD_NAME: Go-Sample-Build
+        JFROG_CLI_BUILD_NUMBER: ${{ github.run_id }}
       run: |
         jf goc --repo-resolve="alex-go" --server-id-resolve=$SERVER_ID
-        jf rt go build main.go --build-name="Go-Sample-Build" --build-number="${{ github.run_id }}"
+        # Activate the Ghost Frog alias for this shell, then run the NATIVE command.
+        # `go` -> jf; with JFROG_CLI_GHOST_FROG=true this runs `jf go build` under the hood.
+        export PATH="$HOME/.jfrog/package-alias/bin:$PATH"
+        hash -r
+        go build main.go
 
     - name: Publish Go Build Info to Artifactory
       run: |
@@ -206,21 +228,30 @@ jobs:
         node-version: '18'
 
     # Install Dependencies and Run Build
-    - name: Install Dependencies and Build NPM Project
+    - name: Install NPM Dependencies (native `npm` via Ghost Frog alias)
       working-directory: ./npm-sample
+      env:
+        JFROG_CLI_BUILD_NAME: NPM-Sample-Build
+        JFROG_CLI_BUILD_NUMBER: ${{ github.run_id }}
       run: |
         jf npm-config --repo-resolve=alex-npm-virtual --repo-deploy=alex-npm-virtual --server-id-resolve=$SERVER_ID
-        jf npm install  \
-          --build-name="NPM-Sample-Build" \
-          --build-number="${{ github.run_id }}"
+        # Activate the Ghost Frog alias, then run the NATIVE command.
+        # `npm` -> jf; with JFROG_CLI_GHOST_FROG=true this runs `jf npm install` under the hood.
+        export PATH="$HOME/.jfrog/package-alias/bin:$PATH"
+        hash -r
+        npm install
 
     # Publish to Artifactory NPM Repo
-    - name: Publish NPM Package to Artifactory
+    - name: Publish NPM Package (native `npm` via Ghost Frog alias)
       working-directory: ./npm-sample
+      env:
+        JFROG_CLI_BUILD_NAME: NPM-Sample-Build
+        JFROG_CLI_BUILD_NUMBER: ${{ github.run_id }}
       run: |
-        jf npm publish \
-          --build-name="NPM-Sample-Build" \
-          --build-number="${{ github.run_id }}"
+        # `npm` -> jf; with JFROG_CLI_GHOST_FROG=true this runs `jf npm publish` under the hood.
+        export PATH="$HOME/.jfrog/package-alias/bin:$PATH"
+        hash -r
+        npm publish
 
     # Publish NPM Build Info
     - name: Publish NPM Build Info to Artifactory
