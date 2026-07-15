@@ -93,20 +93,23 @@ jf rt curl -s -XPOST /api/search/aql -H "Content-Type: text/plain" \
 
 | Crate | Advisory | CVE | Severity |
 |-------|----------|-----|----------|
-| `smallvec = "=1.6.0"` | RUSTSEC-2021-0003 | CVE-2021-25900 | **HIGH** (CVSS 3.1 = 7.5) — buffer overflow; fixed in 1.6.1 |
+| `smallvec = "=1.6.0"` | RUSTSEC-2021-0003 | CVE-2021-25900 | Buffer overflow — **CRITICAL 9.8** (RustSec) / **HIGH 7.5** (NVD CVSS 3.1); fixed in 1.6.1 |
 
-Verify on the live server (run in this directory; needs `cargo` on PATH and Xray entitlement):
+Verify (run in this directory):
 
 ```bash
-jf audit --server-id demo                 # SCA — flags smallvec 1.6.0 / CVE-2021-25900 as HIGH
-jf curation-audit --server-id demo        # would this dependency be blocked by a Curation policy?
+cargo audit          # RustSec — flags smallvec 1.6.0 / RUSTSEC-2021-0003 (9.8 critical)
 ```
 
-To show the "fixed" path, bump to `smallvec = "1.6.1"` (or later) and re-audit —
-the HIGH finding disappears.
+To show the "fixed" path, bump to `smallvec = "1.6.1"` and re-run — the finding disappears.
 
-> In a restricted/sandboxed shell, `jf audit`'s cargo auto-detection and the
-> JAS scanners may not run; use a normal terminal on the POC machine.
+> **JFrog CLI note:** `jf audit` in CLI 2.103 does **not** support Cargo/Rust SCA
+> (only `--go/--mvn/--npm/--pnpm/...`), so it reports *"couldn't determine a
+> package manager"* on a Rust project. For a JFrog-native Rust scan, confirm a
+> CLI/Xray version with Cargo support, or scan server-side via build-info/Xray.
+> Separately, in a memory-constrained shell the JAS scanners (Secrets/SAST/IaC)
+> may be OOM-killed (`signal: killed`) — run on a machine with adequate RAM, or
+> pass `--sca` to skip JAS.
 
 ## Security notes
 
