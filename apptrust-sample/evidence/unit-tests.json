@@ -1,0 +1,20 @@
+{
+  "testSuite": "apptrust-hello-service",
+  "framework": "node:test",
+  "runner": {
+    "name": "node",
+    "version": "20.x"
+  },
+  "results": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 0.8
+  },
+  "cases": [
+    { "name": "GET /healthz returns 200 ok", "status": "passed" },
+    { "name": "GET / returns service payload", "status": "passed" }
+  ],
+  "reportUri": "https://ci.example.com/runs/REPLACE_WITH_RUN_ID/tests"
+}

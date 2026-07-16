@@ -1,0 +1,137 @@
+name: apptrust-pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_version:
+        description: "Application version (SemVer)"
+        required: true
+        default: "1.0.0"
+  push:
+    branches: [main]
+    paths:
+      - "apptrust-sample/**"
+
+env:
+  JF_URL: ${{ vars.JF_URL }}
+  JF_PROJECT: apptrust-demo
+  APP_KEY: hello-service
+  APP_VERSION: ${{ github.event.inputs.app_version || format('1.0.{0}', github.run_number) }}
+  BUILD_NAME: hello-service-build
+  IMAGE_NAME: apptrust-hello-service
+  DOCKER_REPO_DEV: apptrust-demo-docker-dev-local
+  KEY_ALIAS: hello-service-evidence-key
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JFrog CLI with OIDC
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: ${{ env.JF_URL }}
+        with:
+          oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER }}
+
+      - name: Ping AppTrust
+        run: jf apptrust ping
+
+      - name: Ensure application exists
+        run: |
+          if ! jf apptrust app-create "$APP_KEY" \
+                --application-name "Hello Service" \
+                --project "$JF_PROJECT" \
+                --business-criticality medium \
+                --maturity-level production 2>err.log; then
+            grep -qiE "already exists|409" err.log || { cat err.log; exit 1; }
+          fi
+
+      - name: Build & push Docker image with build-info
+        working-directory: apptrust-sample
+        run: |
+          REGISTRY_HOST=$(echo "$JF_URL" | sed -E 's#https?://##; s#/##')
+          IMAGE_REF="$REGISTRY_HOST/$DOCKER_REPO_DEV/$IMAGE_NAME:$APP_VERSION"
+          docker build -t "$IMAGE_REF" .
+          jf docker push "$IMAGE_REF" \
+            --project "$JF_PROJECT" \
+            --build-name "$BUILD_NAME" \
+            --build-number "$APP_VERSION"
+
+      - name: Collect VCS metadata & publish build-info
+        run: |
+          jf rt build-add-git "$BUILD_NAME" "$APP_VERSION" --project "$JF_PROJECT"
+          jf rt build-publish "$BUILD_NAME" "$APP_VERSION" --project "$JF_PROJECT"
+
+      - name: Scan build with Xray
+        run: jf build-scan "$BUILD_NAME" "$APP_VERSION" --project "$JF_PROJECT" --fail=false
+
+      - name: Create AppTrust version
+        run: |
+          jf apptrust version-create "$APP_KEY" "$APP_VERSION" \
+            --source-type-builds "name=$BUILD_NAME, id=$APP_VERSION" \
+            --tag "ci-${{ github.run_number }}" \
+            --sync
+
+      - name: Prepare signing key (from GitHub secret)
+        run: |
+          mkdir -p .keys
+          printf '%s' "${{ secrets.EVIDENCE_PRIVATE_KEY }}" > .keys/evidence.key
+          chmod 600 .keys/evidence.key
+
+      - name: Attach SLSA provenance evidence
+        working-directory: apptrust-sample
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          sed -e "s|REPLACE_WITH_GIT_SHA|${{ github.sha }}|g" \
+              -e "s|REPLACE_WITH_RUN_ID|$RUN_URL|g" \
+              -e "s|REPLACE_WITH_START_TIME|$(date -u +%Y-%m-%dT%H:%M:%SZ)|g" \
+              -e "s|REPLACE_WITH_END_TIME|$(date -u +%Y-%m-%dT%H:%M:%SZ)|g" \
+              -e "s|REPLACE_WITH_BASE_IMAGE_DIGEST|sha256:0000000000000000000000000000000000000000000000000000000000000000|g" \
+              evidence/slsa-provenance.json > /tmp/slsa.json
+          jf evd create-evidence \
+            --project "$JF_PROJECT" \
+            --application-key "$APP_KEY" --application-version "$APP_VERSION" \
+            --predicate /tmp/slsa.json \
+            --predicate-type "https://slsa.dev/provenance/v1" \
+            --key ../.keys/evidence.key --key-alias "$KEY_ALIAS"
+
+      - name: Attach unit-test evidence
+        working-directory: apptrust-sample
+        run: |
+          jf evd create-evidence \
+            --project "$JF_PROJECT" \
+            --application-key "$APP_KEY" --application-version "$APP_VERSION" \
+            --predicate evidence/unit-tests.json \
+            --predicate-type "https://jfrog.com/evidence/test-results/v1" \
+            --key ../.keys/evidence.key --key-alias "$KEY_ALIAS"
+
+      - name: Promote to DEV
+        run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" DEV --promotion-type copy --sync
+
+      - name: Promote to QA
+        run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" QA --promotion-type copy --sync
+
+  release-to-prod:
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    environment: production           # GitHub approval gate
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+        with:
+          oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER }}
+      - name: Promote to PROD
+        run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" PROD --promotion-type copy --sync
+      - name: Mark version RELEASED
+        run: jf apptrust version-release "$APP_KEY" "$APP_VERSION" --sync

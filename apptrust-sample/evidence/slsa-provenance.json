@@ -1,0 +1,37 @@
+{
+  "buildDefinition": {
+    "buildType": "https://slsa.dev/container/v1",
+    "externalParameters": {
+      "source": {
+        "uri": "git+https://github.com/jfrog/apptrust-sample",
+        "digest": {
+          "gitCommit": "REPLACE_WITH_GIT_SHA"
+        }
+      },
+      "workflow": {
+        "ref": "refs/heads/main",
+        "repository": "jfrog/apptrust-sample",
+        "path": ".github/workflows/apptrust-pipeline.yml"
+      }
+    },
+    "internalParameters": {
+      "runnerEnvironment": "github-hosted"
+    },
+    "resolvedDependencies": [
+      {
+        "uri": "pkg:docker/node@20-alpine",
+        "digest": { "sha256": "REPLACE_WITH_BASE_IMAGE_DIGEST" }
+      }
+    ]
+  },
+  "runDetails": {
+    "builder": {
+      "id": "https://github.com/actions/runner/github-hosted"
+    },
+    "metadata": {
+      "invocationId": "REPLACE_WITH_RUN_ID",
+      "startedOn": "REPLACE_WITH_START_TIME",
+      "finishedOn": "REPLACE_WITH_END_TIME"
+    }
+  }
+}

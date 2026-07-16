@@ -1,0 +1,19 @@
+{
+  "name": "apptrust-hello-service",
+  "version": "1.0.0",
+  "description": "Sample Node.js service used to demonstrate the JFrog AppTrust lifecycle (build -> version -> evidence -> promote -> release).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/health.test.js"
+  },
+  "keywords": ["jfrog", "apptrust", "sample"],
+  "author": "JFrog Solution Engineering",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "scanner": {
+    "name": "JFrog Xray",
+    "version": "3.x"
+  },
+  "target": {
+    "type": "docker",
+    "image": "apptrust-hello-service",
+    "tag": "REPLACE_WITH_TAG"
+  },
+  "summary": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "unknown": 0
+  },
+  "policyResult": "PASS",
+  "reportUri": "https://REPLACE_WITH_PLATFORM/xray/scans-list/repositories/REPLACE_WITH_REPO"
+}

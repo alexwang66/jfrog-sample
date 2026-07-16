@@ -1,0 +1,15 @@
+{
+  "gate": "QA_SIGNOFF",
+  "approver": {
+    "user": "REPLACE_WITH_APPROVER",
+    "role": "QA Lead"
+  },
+  "decision": "APPROVED",
+  "checks": [
+    { "name": "smoke-tests", "result": "pass" },
+    { "name": "integration-tests", "result": "pass" },
+    { "name": "regression-suite", "result": "pass" }
+  ],
+  "comment": "All QA gates satisfied; ready for PROD promotion.",
+  "timestamp": "REPLACE_WITH_ISO_TIMESTAMP"
+}
