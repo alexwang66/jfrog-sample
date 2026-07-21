@@ -1,76 +1,81 @@
-# AppTrust Sample — 完整生命周期演示
+# AppTrust Sample — Full Lifecycle Demo
 
-演示 JFrog AppTrust 从**构建 → 应用版本 → 证据(Evidence)采集 → 多阶段 Promotion → 正式 Release** 的端到端流程。
+An end-to-end walkthrough of the JFrog AppTrust lifecycle:
+**build → application version → evidence attachment → multi-stage promotion → final release**.
 
-示例应用是一个最小的 Node.js Express 服务(`hello-service`),打成 Docker 镜像后推送到 Artifactory,以此为源在 AppTrust 中创建应用版本,并附加四类签名证据,再逐级晋升到 PROD 阶段。
+The sample application is a minimal Node.js Express service (`hello-service`)
+packaged as a Docker image, pushed to Artifactory, sourced into an AppTrust
+application version, decorated with four signed evidence records, and promoted
+stage by stage into PROD.
 
-> 参考文档
-> - AppTrust 官方文档:https://jfrog.com/help/r/jfrog-platform-administration-documentation/apptrust
-> - Evidence 服务:https://jfrog.com/help/r/jfrog-artifactory-documentation/evidence
-> - `jf apptrust` CLI 参考:`jf apptrust --help`
-> - `jf evd` CLI 参考:`jf evd --help`
+> References
+> - AppTrust docs: https://jfrog.com/help/r/jfrog-platform-administration-documentation/apptrust
+> - Evidence service: https://jfrog.com/help/r/jfrog-artifactory-documentation/evidence
+> - CLI reference: `jf apptrust --help`, `jf evd --help`
 
 ---
 
-## 目录结构
+## Directory layout
 
 ```
 apptrust-sample/
-├── app/                       # Node.js 示例服务(可独立运行的真实代码)
-│   ├── server.js              # /(欢迎)、/healthz(健康检查)
-│   ├── test/health.test.js    # 单元测试(node:test 原生框架)
+├── app/                       # Node.js sample service (real, runnable code)
+│   ├── server.js              # / (greeting), /healthz (health probe)
+│   ├── test/health.test.js    # Unit tests using node:test (built-in)
 │   └── package.json
-├── Dockerfile                 # 多阶段构建,基于 node:20-alpine
-├── evidence/                  # 4 类 Evidence Predicate 模板
-│   ├── slsa-provenance.json   # SLSA v1 构建溯源
-│   ├── unit-tests.json        # 单元测试结果
-│   ├── security-scan.json     # Xray 扫描汇总
-│   └── qa-approval.json       # QA 人工审批
-├── scripts/                   # 端到端脚本,按顺序执行
-│   ├── config.sh              # 公共配置(可用环境变量覆盖)
-│   ├── 00-init.sh             # 初始化:ping、建应用、生成签名密钥
-│   ├── 01-build.sh            # docker build + jf docker push + 发布 build-info
-│   ├── 02-create-version.sh   # 从 build 创建 AppTrust 应用版本
-│   ├── 03-attach-evidence.sh  # 附加 SLSA、测试、安全扫描 3 类证据
-│   ├── 04-promote.sh          # 晋升 DEV → QA
-│   ├── 05-approve-and-release.sh # QA 审批证据 → 晋升 PROD → 正式 release
-│   ├── 06-verify.sh           # 验证证据签名 + 查询晋升历史(GraphQL)
-│   ├── 99-cleanup.sh          # 清理版本(可选清理应用)
-│   └── run-all.sh             # 一键跑通全部步骤
-└── .github/workflows/apptrust-pipeline.yml   # GitHub Actions 集成示例
+├── Dockerfile                 # Multi-stage build on node:20-alpine
+├── evidence/                  # 4 Evidence Predicate templates
+│   ├── slsa-provenance.json   # SLSA v1 provenance
+│   ├── unit-tests.json        # Unit-test result summary
+│   ├── security-scan.json     # Xray scan summary
+│   └── qa-approval.json       # Manual QA sign-off
+├── scripts/                   # Run in order for the full lifecycle
+│   ├── config.sh              # Central config (override every value via env vars)
+│   ├── 00-init.sh             # ping, create app, generate signing key pair
+│   ├── 01-build.sh            # docker build + jf docker push + publish build-info
+│   ├── 02-create-version.sh   # AppTrust version-create from build
+│   ├── 03-attach-evidence.sh  # attach SLSA + tests + security-scan (3 records)
+│   ├── 04-promote.sh          # promote DEV → QA
+│   ├── 05-approve-and-release.sh # QA approval evidence → PROD → release
+│   ├── 06-verify.sh           # verify evidence signatures + query promotion history
+│   ├── 07-create-policy.sh    # Unified Policy that blocks DEV entry gate
+│   ├── 07b-test-policy-block.sh # verify block-then-unblock behavior
+│   ├── 99-cleanup.sh          # delete versions (optionally delete app)
+│   └── run-all.sh             # runs the whole flow in order
+└── .github/workflows/apptrust-pipeline.yml   # GitHub Actions example
 ```
 
 ---
 
-## 前置条件
+## Prerequisites
 
-| 依赖 | 说明 |
+| Item | Notes |
 |---|---|
-| `jf` CLI ≥ 2.100 | 需支持 `jf apptrust` 和 `jf evd` 命名空间 |
-| Docker | 用于构建镜像 |
-| `jq` | 校验 Evidence Predicate JSON |
-| JFrog 平台 | 已启用 **AppTrust** 与 **Evidence** 服务 |
-| **AppTrust 需 Access Token 认证** | Basic Auth 会被拒绝,请使用 `jf c add --access-token=...` 或 OIDC |
-| JFrog Project | 需要一个已存在的 Project(默认 `apptrust-demo`),并已在平台上配置 `DEV`、`QA`、`PROD` 三个 Stage/Environment |
-| Docker 仓库 | 每个 Stage 对应一个 Docker 本地仓库(默认命名 `<project>-docker-<stage>-local`) |
+| `jf` CLI ≥ 2.100 | Needs both `jf apptrust` and `jf evd` |
+| Docker | For building the image |
+| `jq` | Validates Evidence Predicate JSON |
+| **JFrog platform** with AppTrust + Evidence enabled | |
+| **Access-token auth for AppTrust** | Basic auth is rejected — use `jf c add --access-token=...` or OIDC |
+| **JFrog Project** | Must exist ahead of time (default: `apptrust-demo`); DEV/QA/PROD stages/environments must be configured on the platform |
+| **Docker repos** | One per stage, defaults follow `<project>-docker-<stage>-local` |
 
-### 平台上需先手动完成的准备
+### One-time platform setup
 
-在 JFrog 平台 UI 中:
+In the JFrog UI:
 
-1. **创建 Project** `apptrust-demo`(名称可通过 `JF_PROJECT` 环境变量覆盖)。
-2. **创建 3 个 Docker 本地仓库**并加入该 Project:
+1. **Create a Project** named `apptrust-demo` (override via the `JF_PROJECT` env var).
+2. **Create three Docker local repos** and attach them to the project:
    - `apptrust-demo-docker-dev-local`
    - `apptrust-demo-docker-qa-local`
    - `apptrust-demo-docker-prod-local`
-3. **配置 Lifecycle 阶段**(Administration → AppTrust → Lifecycle):`DEV`、`QA`、`PROD`,并把上面三个仓库映射到对应阶段。
+3. **Configure lifecycle stages** (Administration → AppTrust → Lifecycle):
+   `DEV`, `QA`, `PROD`, and map each repo to the matching stage.
 
 ---
 
-## 快速开始
+## Quickstart
 
-### 1. 配置服务器
-
+### 1. Configure the server
 ```bash
 jf c add my-apptrust \
   --url https://<your-tenant>.jfrog.io \
@@ -79,70 +84,71 @@ jf c add my-apptrust \
 jf c use my-apptrust
 ```
 
-### 2. (可选)自定义变量
-
+### 2. (Optional) override defaults
 ```bash
 export JF_SERVER_ID=my-apptrust
 export JF_PROJECT=apptrust-demo
 export APP_VERSION=1.0.0
 ```
 
-其他所有可覆盖变量见 `scripts/config.sh`。
+All overridable variables live in `scripts/config.sh`.
 
-### 3. 一键执行
-
+### 3. Run everything
 ```bash
 cd apptrust-sample
 ./scripts/run-all.sh
 ```
 
-或按步骤逐个执行,便于观察每一步的输出:
+Or step through it:
 
 ```bash
-./scripts/00-init.sh              # 初始化应用与密钥
-./scripts/01-build.sh             # 构建并推送镜像 + 发布 build-info
-./scripts/02-create-version.sh    # 创建 AppTrust 应用版本(PRE_RELEASE)
-./scripts/03-attach-evidence.sh   # 附加 3 类 Evidence
+./scripts/00-init.sh              # bootstrap app + signing keys
+./scripts/01-build.sh             # build & push image + publish build-info
+./scripts/02-create-version.sh    # create AppTrust version (PRE_RELEASE)
+./scripts/03-attach-evidence.sh   # attach the 3 pre-promotion evidence records
 ./scripts/04-promote.sh           # DEV → QA
-./scripts/05-approve-and-release.sh  # QA 审批 → PROD → RELEASED
-./scripts/06-verify.sh            # 验证签名并查询晋升历史
+./scripts/05-approve-and-release.sh  # QA approval → PROD → RELEASED
+./scripts/06-verify.sh            # verify signatures + query promotion history
 ```
 
 ---
 
-## Evidence 类型说明
+## Evidence types
 
-Evidence(证据)是对应用版本的可验证、可签名的声明,构成 SLSA 意义上的供应链信任链。示例覆盖四类常见 Predicate:
+Evidence is a verifiable, signed claim about a specific application version —
+the SLSA supply-chain trust anchor. This sample covers four common predicates:
 
-| Predicate Type | 用途 | 触发时机 |
+| Predicate Type | Purpose | When to attach |
 |---|---|---|
-| `https://slsa.dev/provenance/v1` | 记录构建来源(git commit、runner、工具链、基础镜像) | 构建完成 |
-| `https://jfrog.com/evidence/test-results/v1` | 单元/集成测试结果 | 测试通过 |
-| `https://jfrog.com/evidence/security-scan/v1` | Xray 扫描汇总 + 策略结论 | 扫描完成 |
-| `https://jfrog.com/evidence/approval/v1` | 人工审批(QA、安全、合规) | 每个阶段之间 |
+| `https://slsa.dev/provenance/v1` | Records build source (git commit, runner, toolchain, base image) | After build completes |
+| `https://jfrog.com/evidence/test-results/v1` | Unit / integration test summary | After tests pass |
+| `https://jfrog.com/evidence/security-scan/v1` | Xray scan summary + policy verdict | After scan completes |
+| `https://jfrog.com/evidence/approval/v1` | Manual approval (QA, security, compliance) | Between stages |
 
-所有证据都用同一把 ECDSA P-256 私钥签名(`jf evd generate-key-pair` 生成),公钥同步上传到平台的 **Trusted Keys**,`jf evd verify-evidence` 可以离线校验。
+All four are signed with the same ECDSA P-256 key (generated by
+`jf evd generate-key-pair`); the matching public key is uploaded to the
+platform's Trusted Keys so `jf evd verify-evidence` can verify offline.
 
 ---
 
-## 生命周期示意
+## Lifecycle diagram
 
 ```
 [git commit]
      │
      ▼
-  docker build          ──► apptrust-demo-docker-dev-local
+  docker build         ──► apptrust-demo-docker-dev-local
      │
      ▼
  jf rt build-publish
      │
      ▼                                     ┌──────────────────┐
- jf apptrust version-create ──► PRE_RELEASE│ Evidence 附加     │
+ jf apptrust version-create ──► PRE_RELEASE│ Attach evidence:  │
      │                                     │  • SLSA           │
      │  ◄──────────────────────────────────┤  • Tests          │
      │                                     │  • Xray scan      │
      ▼                                     └──────────────────┘
- promote DEV  ─► apptrust-demo-docker-dev-local  (记录 promotion)
+ promote DEV  ─► apptrust-demo-docker-dev-local  (promotion recorded)
      │
      ▼
  promote QA   ─► apptrust-demo-docker-qa-local
@@ -159,28 +165,33 @@ Evidence(证据)是对应用版本的可验证、可签名的声明,构成 SLSA 
 
 ---
 
-## 常见问题
+## Troubleshooting
 
-**Q1: `jf apptrust ping` 报 `does not support basic authentication`**
+**Q1: `jf apptrust ping` reports `does not support basic authentication`**
 
-AppTrust 只接受 Access Token。请用 `jf c add --access-token=...` 重新配置,或用 `jf c edit`。
+AppTrust only accepts access tokens. Reconfigure with `jf c add --access-token=...`
+or `jf c edit`.
 
-**Q2: `version-create` 报找不到 build**
+**Q2: `version-create` cannot find the build**
 
-确认 `jf rt build-publish` 已成功执行,且 `build-name` / `build-number` 与 `--source-type-builds` 中的完全一致,`--project` 也必须一致。
+Confirm `jf rt build-publish` succeeded, and the `build-name` / `build-number`
+you pass to `--source-type-builds` match exactly. Include `--project` on both
+commands if the build lives under a project.
 
-**Q3: Promotion 报 stage 不存在**
+**Q3: Promotion fails because the stage does not exist**
 
-平台端(Administration → AppTrust → Lifecycle)必须先手动创建 `DEV/QA/PROD` 阶段并映射仓库。
+Create the DEV/QA/PROD stages on the platform first (Administration → AppTrust
+→ Lifecycle) and map each stage to its Docker repo.
 
-**Q4: Evidence 验证失败**
+**Q4: Evidence verification fails**
 
-`00-init.sh` 上传公钥后需要几秒钟同步。若仍失败,检查:
-- `--key-alias` 一致
-- 私钥 `.keys/evidence.key` 权限为 600
-- 平台 Trusted Keys 中确实存在同名公钥
+`00-init.sh` uploads the public key; it may take a few seconds to propagate.
+If it still fails, check:
+- `--key-alias` matches on both create and verify
+- The private key file `.keys/evidence.key` has mode 600
+- The Trusted Keys section on the platform lists the expected alias
 
-**Q5: 想清理**
+**Q5: Cleanup**
 
 ```bash
 DELETE_APPLICATION=true ./scripts/99-cleanup.sh
@@ -188,10 +199,14 @@ DELETE_APPLICATION=true ./scripts/99-cleanup.sh
 
 ---
 
-## CI/CD 集成
+## CI/CD integration
 
-见 `.github/workflows/apptrust-pipeline.yml` — 一个包含 OIDC 认证、Xray 扫描、Evidence 附加、多阶段 promote、GitHub Environment 审批网关的完整 GitHub Actions 示例。所需的仓库级配置:
+See `.github/workflows/apptrust-pipeline.yml` — a full GitHub Actions example
+with OIDC auth, Xray scan, evidence attachment, multi-stage promote, and a
+`production` GitHub Environment as the PROD approval gate.
+
+Required repo-level config:
 
 - **Variables**: `JF_URL`, `JF_OIDC_PROVIDER`
-- **Secrets**: `EVIDENCE_PRIVATE_KEY`(签名私钥 PEM 内容)
-- **Environments**: `production`(启用 required reviewers 即可作为 PROD gate)
+- **Secrets**: `EVIDENCE_PRIVATE_KEY` (PEM contents of the signing private key)
+- **Environments**: `production` (enable required reviewers to make it a real gate)
