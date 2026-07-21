@@ -1,0 +1,31 @@
+{
+  "modelCard": {
+    "modelDetails": {
+      "name": "REPLACE_WITH_MODEL_NAME",
+      "revision": "REPLACE_WITH_REVISION",
+      "framework": "transformers",
+      "task": "fill-mask",
+      "language": "en",
+      "sourceUri": "https://huggingface.co/REPLACE_WITH_MODEL_FULL"
+    },
+    "license": {
+      "spdx": "Apache-2.0",
+      "verified": true
+    },
+    "intendedUse": "Text classification and masked language modeling in English business documents.",
+    "outOfScopeUse": [
+      "Any decision affecting employment, housing, credit, or legal outcomes",
+      "Real-time safety-critical inference"
+    ],
+    "trainingData": {
+      "datasets": ["bookcorpus", "wikipedia (en)"],
+      "auditTrail": "https://internal.example.com/ml/audit/REPLACE_WITH_MODEL_NAME"
+    },
+    "reviewer": {
+      "user": "REPLACE_WITH_APPROVER",
+      "role": "ML Governance Lead"
+    },
+    "reviewedAt": "REPLACE_WITH_ISO_TIMESTAMP",
+    "conclusion": "APPROVED"
+  }
+}

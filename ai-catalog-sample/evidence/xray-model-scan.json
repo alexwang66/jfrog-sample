@@ -1,0 +1,25 @@
+{
+  "scanner": {
+    "name": "JFrog Xray",
+    "version": "3.x",
+    "profile": "ml-model-scan"
+  },
+  "target": {
+    "type": "huggingface-model",
+    "model": "REPLACE_WITH_MODEL_FULL",
+    "revision": "REPLACE_WITH_REVISION",
+    "repository": "REPLACE_WITH_REPO"
+  },
+  "findings": {
+    "malicious": 0,
+    "suspicious": 0,
+    "unsafe_serialization": 0,
+    "pickle_exploits": 0,
+    "critical_cve": 0,
+    "high_cve": 0,
+    "medium_cve": 0,
+    "license_violations": 0
+  },
+  "policyResult": "PASS",
+  "reportUri": "https://REPLACE_WITH_PLATFORM/xray/scans-list/ml-models/REPLACE_WITH_REPO"
+}

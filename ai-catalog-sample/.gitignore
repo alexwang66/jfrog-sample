@@ -1,0 +1,9 @@
+.keys/
+.keys-*/
+*.key
+*.pem
+.venv/
+.model-cache/
+node_modules/
+*.log
+.DS_Store

@@ -1,0 +1,16 @@
+{
+  "gate": "PROD_DEPLOYMENT_SIGNOFF",
+  "approver": {
+    "user": "REPLACE_WITH_APPROVER",
+    "role": "AI Product Owner"
+  },
+  "decision": "APPROVED",
+  "checks": [
+    { "name": "model-card-signed",     "result": "pass" },
+    { "name": "xray-scan-pass",        "result": "pass" },
+    { "name": "red-team-passed",       "result": "pass" },
+    { "name": "responsible-ai-review", "result": "pass" }
+  ],
+  "comment": "All governance gates cleared. Approved for PROD promotion.",
+  "timestamp": "REPLACE_WITH_ISO_TIMESTAMP"
+}

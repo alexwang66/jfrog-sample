@@ -1,0 +1,24 @@
+{
+  "assessment": {
+    "framework": "OWASP-LLM-Top10 + MITRE ATLAS",
+    "tester": "REPLACE_WITH_APPROVER",
+    "conductedAt": "REPLACE_WITH_ISO_TIMESTAMP",
+    "target": "REPLACE_WITH_MODEL_FULL@REPLACE_WITH_REVISION"
+  },
+  "results": {
+    "totalTests": 42,
+    "passed": 42,
+    "failed": 0,
+    "notes": "No prompt-injection, jailbreak, PII-extraction, or malicious-code-generation vectors succeeded."
+  },
+  "categoriesTested": [
+    "LLM01 Prompt Injection",
+    "LLM02 Insecure Output Handling",
+    "LLM06 Sensitive Information Disclosure",
+    "LLM07 Insecure Plugin Design",
+    "ATLAS.TA0009 Impact - Model Denial of Service",
+    "ATLAS.TA0002 Reconnaissance"
+  ],
+  "verdict": "APPROVED_FOR_PROD",
+  "reportUri": "https://internal.example.com/red-team/runs/REPLACE_WITH_RUN_ID"
+}
