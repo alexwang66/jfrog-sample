@@ -26,6 +26,7 @@ env:
   DOCKER_REPO: docker-local
   IMAGE_NAME: runtime-sample-maven
   BUILD_NAME: Runtime-Maven-Sample-Build
+  DOCKER_BUILD_NAME: Runtime-Docker-Image-Build
   K8S_NAMESPACE: default
   K8S_POD_NAME: runtime-sample-maven
   IMAGE_PULL_SECRET: jfrog-docker-config
@@ -132,8 +133,18 @@ jobs:
       - name: Push Runtime Image
         run: |
           IMAGE="$IMAGE_REGISTRY/$DOCKER_REPO/$IMAGE_NAME:$IMAGE_TAG"
-          jf docker push "$IMAGE" --server-id "$RUNTIME_SERVER_ID"
-          jf docker push "$IMAGE_REGISTRY/$DOCKER_REPO/$IMAGE_NAME:latest-amd64" --server-id "$RUNTIME_SERVER_ID"
+          jf docker push "$IMAGE" \
+            --server-id "$RUNTIME_SERVER_ID" \
+            --build-name "$DOCKER_BUILD_NAME" \
+            --build-number "${{ github.run_id }}"
+          jf docker push "$IMAGE_REGISTRY/$DOCKER_REPO/$IMAGE_NAME:latest-amd64" \
+            --server-id "$RUNTIME_SERVER_ID" \
+            --build-name "$DOCKER_BUILD_NAME" \
+            --build-number "${{ github.run_id }}"
+
+      - name: Publish Docker Build Info
+        run: |
+          jf rt build-publish "$DOCKER_BUILD_NAME" "${{ github.run_id }}" --server-id "$RUNTIME_SERVER_ID"
 
       - name: Setup Kubectl
         uses: azure/setup-kubectl@v4
@@ -172,9 +183,11 @@ jobs:
           JAVA_PACKAGE_URL="${{ vars.JFROG_URL }}/ui/repos/tree/General/$JAVA_PACKAGE_PATH"
           DOCKER_IMAGE_URL="https://$IMAGE_REGISTRY/ui/repos/tree/General/$DOCKER_REPO/$IMAGE_NAME/$IMAGE_TAG"
           BUILD_INFO_URL="${{ vars.JFROG_URL }}/ui/builds/$BUILD_NAME/${{ github.run_id }}"
+          DOCKER_BUILD_INFO_URL="https://$IMAGE_REGISTRY/ui/builds/$DOCKER_BUILD_NAME/${{ github.run_id }}"
           echo "### Runtime Maven Sample" >> "$GITHUB_STEP_SUMMARY"
           echo "- Java Package: [$MAVEN_ARTIFACT_ID-$MAVEN_VERSION.war]($JAVA_PACKAGE_URL)" >> "$GITHUB_STEP_SUMMARY"
           echo "- Docker Image: [$IMAGE]($DOCKER_IMAGE_URL)" >> "$GITHUB_STEP_SUMMARY"
           echo "- Image Scan: enforced before Kubernetes deployment" >> "$GITHUB_STEP_SUMMARY"
           echo "- Build Info: [$BUILD_NAME/${{ github.run_id }}]($BUILD_INFO_URL)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Docker Build Info: [$DOCKER_BUILD_NAME/${{ github.run_id }}]($DOCKER_BUILD_INFO_URL)" >> "$GITHUB_STEP_SUMMARY"
           echo "- Kubernetes Pod: \`$K8S_NAMESPACE/$K8S_POD_NAME\`" >> "$GITHUB_STEP_SUMMARY"
