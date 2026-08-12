@@ -19,6 +19,10 @@ env:
   SERVER_ID: soleng
   RUNTIME_SERVER_ID: demo
   MAVEN_VIRTUAL_REPO: alex-maven-virtual
+  MAVEN_DEPLOY_REPO: alex-maven-local
+  MAVEN_GROUP_PATH: com/example/jfrog
+  MAVEN_ARTIFACT_ID: app-boot
+  MAVEN_VERSION: 1.0.3
   DOCKER_REPO: docker-local
   IMAGE_NAME: runtime-sample-maven
   BUILD_NAME: Runtime-Maven-Sample-Build
@@ -92,6 +96,15 @@ jobs:
             --build-name="$BUILD_NAME" \
             --build-number="${{ github.run_id }}"
 
+      - name: Upload Java Package To Artifactory
+        run: |
+          WAR_PATH="maven-sample/target/$MAVEN_ARTIFACT_ID-$MAVEN_VERSION.war"
+          TARGET_PATH="$MAVEN_DEPLOY_REPO/$MAVEN_GROUP_PATH/$MAVEN_ARTIFACT_ID/$MAVEN_VERSION/$MAVEN_ARTIFACT_ID-$MAVEN_VERSION.war"
+          jf rt upload "$WAR_PATH" "$TARGET_PATH" \
+            --server-id "$SERVER_ID" \
+            --build-name "$BUILD_NAME" \
+            --build-number "${{ github.run_id }}"
+
       - name: Publish Maven Build Info
         run: |
           jf rt build-publish "$BUILD_NAME" "${{ github.run_id }}"
@@ -155,8 +168,13 @@ jobs:
         if: always()
         run: |
           IMAGE="$IMAGE_REGISTRY/$DOCKER_REPO/$IMAGE_NAME:$IMAGE_TAG"
+          JAVA_PACKAGE_PATH="$MAVEN_DEPLOY_REPO/$MAVEN_GROUP_PATH/$MAVEN_ARTIFACT_ID/$MAVEN_VERSION/$MAVEN_ARTIFACT_ID-$MAVEN_VERSION.war"
+          JAVA_PACKAGE_URL="${{ vars.JFROG_URL }}/ui/repos/tree/General/$JAVA_PACKAGE_PATH"
+          DOCKER_IMAGE_URL="https://$IMAGE_REGISTRY/ui/repos/tree/General/$DOCKER_REPO/$IMAGE_NAME/$IMAGE_TAG"
+          BUILD_INFO_URL="${{ vars.JFROG_URL }}/ui/builds/$BUILD_NAME/${{ github.run_id }}"
           echo "### Runtime Maven Sample" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Image: \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Java Package: [$MAVEN_ARTIFACT_ID-$MAVEN_VERSION.war]($JAVA_PACKAGE_URL)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Docker Image: [$IMAGE]($DOCKER_IMAGE_URL)" >> "$GITHUB_STEP_SUMMARY"
           echo "- Image Scan: enforced before Kubernetes deployment" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Build Info: ${{ vars.JFROG_URL }}/ui/builds/$BUILD_NAME/${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Build Info: [$BUILD_NAME/${{ github.run_id }}]($BUILD_INFO_URL)" >> "$GITHUB_STEP_SUMMARY"
           echo "- Kubernetes Pod: \`$K8S_NAMESPACE/$K8S_POD_NAME\`" >> "$GITHUB_STEP_SUMMARY"
