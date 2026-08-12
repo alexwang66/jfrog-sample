@@ -112,6 +112,11 @@ jobs:
             ${{ env.IMAGE_REGISTRY }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
             ${{ env.IMAGE_REGISTRY }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:latest-amd64
 
+      - name: Scan Runtime Image
+        run: |
+          IMAGE="$IMAGE_REGISTRY/$DOCKER_REPO/$IMAGE_NAME:$IMAGE_TAG"
+          jf docker scan "$IMAGE" --server-id "$RUNTIME_SERVER_ID"
+
       - name: Setup Kubectl
         uses: azure/setup-kubectl@v4
 
@@ -147,5 +152,6 @@ jobs:
           IMAGE="$IMAGE_REGISTRY/$DOCKER_REPO/$IMAGE_NAME:$IMAGE_TAG"
           echo "### Runtime Maven Sample" >> "$GITHUB_STEP_SUMMARY"
           echo "- Image: \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image Scan: enforced before Kubernetes deployment" >> "$GITHUB_STEP_SUMMARY"
           echo "- Build Info: ${{ vars.JFROG_URL }}/ui/builds/$BUILD_NAME/${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Kubernetes Pod: \`$K8S_NAMESPACE/$K8S_POD_NAME\`" >> "$GITHUB_STEP_SUMMARY"
