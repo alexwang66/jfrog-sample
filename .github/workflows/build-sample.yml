@@ -17,6 +17,7 @@ on:
 
 env:
   SERVER_ID: soleng
+  RUNTIME_SERVER_ID: demo
   MAVEN_VIRTUAL_REPO: alex-maven-virtual
   DOCKER_REPO: docker-local
   IMAGE_NAME: runtime-sample-maven
@@ -34,7 +35,7 @@ jobs:
 
     env:
       JFROG_URL: ${{ vars.JFROG_URL }}
-      IMAGE_REGISTRY: ${{ vars.JFROG_DOCKER_REGISTRY || 'soleng.jfrog.io' }}
+      IMAGE_REGISTRY: ${{ vars.RUNTIME_JFROG_DOCKER_REGISTRY || 'demo.jfrogchina.com' }}
       IMAGE_TAG: ${{ github.run_number }}-${{ github.sha }}
 
     steps:
@@ -65,8 +66,14 @@ jobs:
             --access-token="${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}" \
             --interactive=false \
             --overwrite=true
+          jf c add "$RUNTIME_SERVER_ID" \
+            --url="${{ vars.RUNTIME_JFROG_URL || 'https://demo.jfrogchina.com' }}" \
+            --access-token="${{ secrets.RUNTIME_ARTIFACTORY_ACCESS_TOKEN }}" \
+            --interactive=false \
+            --overwrite=true
           jf c use "$SERVER_ID"
           jf rt ping --server-id "$SERVER_ID"
+          jf rt ping --server-id "$RUNTIME_SERVER_ID"
 
       - name: Configure Maven With Artifactory
         run: |
@@ -92,7 +99,7 @@ jobs:
 
       - name: Login To JFrog Docker Registry
         run: |
-          jf docker login "$IMAGE_REGISTRY" --server-id "$SERVER_ID"
+          jf docker login "$IMAGE_REGISTRY" --server-id "$RUNTIME_SERVER_ID"
 
       - name: Build And Push Runtime Image
         uses: docker/build-push-action@v6
@@ -121,7 +128,7 @@ jobs:
             --namespace "$K8S_NAMESPACE" \
             --docker-server="$IMAGE_REGISTRY" \
             --docker-username="${{ vars.JFROG_DOCKER_USERNAME || 'alexwang' }}" \
-            --docker-password="${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}" \
+            --docker-password="${{ secrets.RUNTIME_ARTIFACTORY_ACCESS_TOKEN }}" \
             --dry-run=client \
             -o yaml | kubectl apply -f -
 
