@@ -34,7 +34,7 @@ jobs:
 
     env:
       JFROG_URL: ${{ vars.JFROG_URL }}
-      IMAGE_REGISTRY: ${{ vars.JFROG_DOCKER_REGISTRY || 'demo.jfrogchina.com' }}
+      IMAGE_REGISTRY: ${{ vars.JFROG_DOCKER_REGISTRY || 'soleng.jfrog.io' }}
       IMAGE_TAG: ${{ github.run_number }}-${{ github.sha }}
 
     steps:
