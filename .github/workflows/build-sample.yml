@@ -101,21 +101,26 @@ jobs:
         run: |
           jf docker login "$IMAGE_REGISTRY" --server-id "$RUNTIME_SERVER_ID"
 
-      - name: Build And Push Runtime Image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: runtime-sample/Dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ${{ env.IMAGE_REGISTRY }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-            ${{ env.IMAGE_REGISTRY }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:latest-amd64
+      - name: Build Runtime Image
+        run: |
+          IMAGE="$IMAGE_REGISTRY/$DOCKER_REPO/$IMAGE_NAME:$IMAGE_TAG"
+          docker build \
+            --platform linux/amd64 \
+            -t "$IMAGE" \
+            -t "$IMAGE_REGISTRY/$DOCKER_REPO/$IMAGE_NAME:latest-amd64" \
+            -f runtime-sample/Dockerfile \
+            .
 
       - name: Scan Runtime Image
         run: |
           IMAGE="$IMAGE_REGISTRY/$DOCKER_REPO/$IMAGE_NAME:$IMAGE_TAG"
           jf docker scan "$IMAGE" --server-id "$RUNTIME_SERVER_ID"
+
+      - name: Push Runtime Image
+        run: |
+          IMAGE="$IMAGE_REGISTRY/$DOCKER_REPO/$IMAGE_NAME:$IMAGE_TAG"
+          jf docker push "$IMAGE" --server-id "$RUNTIME_SERVER_ID"
+          jf docker push "$IMAGE_REGISTRY/$DOCKER_REPO/$IMAGE_NAME:latest-amd64" --server-id "$RUNTIME_SERVER_ID"
 
       - name: Setup Kubectl
         uses: azure/setup-kubectl@v4
