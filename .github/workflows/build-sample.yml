@@ -1,229 +1,144 @@
-name: Build Sample
+name: Build And Deploy Runtime Sample
 
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - ".github/workflows/build-sample.yml"
+      - "maven-sample/**"
+      - "runtime-sample/**"
   pull_request:
     branches: [ "main" ]
+    paths:
+      - ".github/workflows/build-sample.yml"
+      - "maven-sample/**"
+      - "runtime-sample/**"
+  workflow_dispatch:
+
 env:
-  NUGET_REPO_NAME: "alex-nuget"
   SERVER_ID: soleng
-  MAVEN_VIRTUAL_REPO: "alex-maven-virtual"
+  MAVEN_VIRTUAL_REPO: alex-maven-virtual
+  DOCKER_REPO: docker-local
+  IMAGE_NAME: runtime-sample-maven
+  BUILD_NAME: Runtime-Maven-Sample-Build
+  K8S_NAMESPACE: default
+  K8S_POD_NAME: runtime-sample-maven
+  IMAGE_PULL_SECRET: jfrog-docker-config
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
+
     env:
-      # Used by jfrog/setup-jfrog-cli (OIDC) and all jf commands below
       JFROG_URL: ${{ vars.JFROG_URL }}
+      IMAGE_REGISTRY: ${{ vars.JFROG_DOCKER_REGISTRY || 'demo.jfrogchina.com' }}
+      IMAGE_TAG: ${{ github.run_number }}-${{ github.sha }}
 
     steps:
-    # Checkout Code
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    # set up.NET SDK
-    - name: Setup .NET Core SDK
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 9.x 
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
 
-    # This action sets up the JFrog CLI with the Artifactory URL and access token     
-    # - uses: jfrog/setup-jfrog-cli@v4
-    #   env:
-    #     JFROG_URL: ${{ vars.JFROG_URL }}
-    #     JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - uses: jfrog/setup-jfrog-cli@v4
-      env:
-        JFROG_URL: ${{ vars.JFROG_URL }}
-      with:
-        oidc-provider-name: alexwang-github
-          
-    # This command adds a new server configuration to the JFrog CLI, as an alternative for using the setup-jfrog-cli action    
-    - run: |
-        export SERVER_ID="soleng"
-        # export NUGET_REPO_NAME="alex-nuget"
-        jf c add $SERVER_ID --url=${{ vars.JFROG_URL}} --access-token=${{ secrets.ARTIFACTORY_ACCESS_TOKEN }} --interactive=false
-        jf c use $SERVER_ID
-        jf c show
-        jf rt ping
-        jf dotnetc --repo-resolve="${{ env.NUGET_REPO_NAME }}"  --server-id-resolve=$SERVER_ID
-    # Restore Dependencies from Artifactory
-    - name: Restore Dependencies from Artifactory
-      run: |
-        jf rt dotnet restore dotnet-sample/dotnet-sample.sln \
-          --build-name="DotNet-Sample-Build" \
-          --build-number="${{ github.run_id }}"
-      env:
-        DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      - name: Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JFROG_URL: ${{ vars.JFROG_URL }}
+        with:
+          oidc-provider-name: alexwang-github
 
-    # Build Project
-    - name: Build Project
-      run: |
-        jf rt dotnet build dotnet-sample/dotnet-sample.sln \
-          --no-restore \
-          --build-name="DotNet-Sample-Build" \
-          --build-number="${{ github.run_id }}"
-        
-      env:
-        DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      - name: Configure JFrog CLI
+        run: |
+          jf c add "$SERVER_ID" \
+            --url="${{ vars.JFROG_URL }}" \
+            --access-token="${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}" \
+            --interactive=false \
+            --overwrite=true
+          jf c use "$SERVER_ID"
+          jf rt ping --server-id "$SERVER_ID"
 
-    # Run Tests
-    - name: Run Tests
-      run: dotnet test dotnet-sample/dotnet-sample.sln --no-build
+      - name: Configure Maven With Artifactory
+        run: |
+          jf mvnc \
+            --repo-resolve-releases="$MAVEN_VIRTUAL_REPO" \
+            --repo-resolve-snapshots="$MAVEN_VIRTUAL_REPO" \
+            --repo-deploy-releases="$MAVEN_VIRTUAL_REPO" \
+            --repo-deploy-snapshots="$MAVEN_VIRTUAL_REPO" \
+            --server-id-resolve="$SERVER_ID" \
+            --server-id-deploy="$SERVER_ID"
 
-    # Publish Artifacts
-    - name: Publish Artifacts
-      run: |
-        dotnet publish dotnet-sample/dotnet-sample.sln \
-          --output ./output
-      env:
-        DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      - name: Build Maven Project
+        working-directory: ./maven-sample
+        run: |
+          jf rt mvn clean package \
+            --build-name="$BUILD_NAME" \
+            --build-number="${{ github.run_id }}"
 
-    # Upload Artifacts to Artifactory
-    - name: Upload Artifacts to Artifactory
-      run: |
-        jf rt u "dotnet-sample/bin/Release/*.nupkg" \
-          "${{ env.NUGET_REPO_NAME }}/dotnet-sample" \
-          --build-name="DotNet-Sample-Build" \
-          --build-number="${{ github.run_id }}"
-    # Publish Build Info to Artifactory
-    - name: Publish Build Info to Artifactory
-      run: |
-        jf rt build-publish "DotNet-Sample-Build" "${{ github.run_id }}"
-        jf bs DotNet-Sample-Build "${{ github.run_id }}"   --fail=false
+      - name: Publish Maven Build Info
+        run: |
+          jf rt build-publish "$BUILD_NAME" "${{ github.run_id }}"
+          jf bs "$BUILD_NAME" "${{ github.run_id }}" --fail=false
 
-    # Go Project Build
-    - name: Setup Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.21.x'
+      - name: Login To JFrog Docker Registry
+        run: |
+          jf docker login "$IMAGE_REGISTRY" --server-id "$SERVER_ID"
 
-    - name: Build Go Project with JFrog CLI
-      working-directory: ./go-sample
-      run: |
-        jf goc --repo-resolve="alex-go" --server-id-resolve=$SERVER_ID
-        jf rt go build main.go --build-name="Go-Sample-Build" --build-number="${{ github.run_id }}"
+      - name: Build And Push Runtime Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: runtime-sample/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE_REGISTRY }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.IMAGE_REGISTRY }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:latest-amd64
 
-    - name: Publish Go Build Info to Artifactory
-      run: |
-        jf rt build-publish "Go-Sample-Build" "${{ github.run_id }}"
-        jf bs Go-Sample-Build "${{ github.run_id }}" --fail=false
+      - name: Setup Kubectl
+        uses: azure/setup-kubectl@v4
 
-    # Build Summary
-    - name: Build Summary
-      if: always()
-      run: |
-        echo "### 🟦 DotNet Build" >> $GITHUB_STEP_SUMMARY
-        echo "- [Artifacts in Artifactory](${{ vars.JFROG_URL }}/ui/repos/tree/General/${{ env.NUGET_REPO_NAME }}/dotnet-sample)" >> $GITHUB_STEP_SUMMARY
-        echo "- [Build Info](${{ vars.JFROG_URL }}/ui/builds/DotNet-Sample-Build/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+      - name: Configure Kubernetes
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.RUNTIME_KUBECONFIG_B64 }}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          kubectl config current-context
 
-        echo "### 🟨 Go Build" >> $GITHUB_STEP_SUMMARY
-        echo "- [Artifacts in Artifactory](${{ vars.JFROG_URL }}/ui/repos/tree/General/alex-go/github.com/jfrog-poc-samples/go-sample)" >> $GITHUB_STEP_SUMMARY
-        echo "- [Build Info](${{ vars.JFROG_URL }}/ui/builds/Go-Sample-Build/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+      - name: Configure Kubernetes Image Pull Secret
+        run: |
+          kubectl create secret docker-registry "$IMAGE_PULL_SECRET" \
+            --namespace "$K8S_NAMESPACE" \
+            --docker-server="$IMAGE_REGISTRY" \
+            --docker-username="${{ vars.JFROG_DOCKER_USERNAME || 'alexwang' }}" \
+            --docker-password="${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}" \
+            --dry-run=client \
+            -o yaml | kubectl apply -f -
 
-        echo "### 🟧 NPM Build" >> $GITHUB_STEP_SUMMARY
-        echo "- [Artifacts in Artifactory](${{ vars.JFROG_URL }}/ui/repos/tree/General/alex-npm/npm-sample)" >> $GITHUB_STEP_SUMMARY
-        echo "- [Build Info](${{ vars.JFROG_URL }}/ui/builds/NPM-Sample-Build/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+      - name: Deploy Runtime Pod
+        run: |
+          IMAGE="$IMAGE_REGISTRY/$DOCKER_REPO/$IMAGE_NAME:$IMAGE_TAG"
+          kubectl delete pod "$K8S_POD_NAME" --namespace "$K8S_NAMESPACE" --ignore-not-found=true
+          sed "s#demo.jfrogchina.com/docker-local/runtime-sample-maven:1.0.3-amd64#$IMAGE#g" runtime-sample/pod.yaml \
+            | kubectl apply --namespace "$K8S_NAMESPACE" -f -
+          kubectl wait --for=condition=Ready "pod/$K8S_POD_NAME" --namespace "$K8S_NAMESPACE" --timeout=180s
+          kubectl get pod "$K8S_POD_NAME" --namespace "$K8S_NAMESPACE" -o wide
 
-        echo "### 🟩 Gradle Android Build" >> $GITHUB_STEP_SUMMARY
-        echo "- [Build Info](${{ vars.JFROG_URL }}/ui/builds/Gradle-Android-Sample-Build/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
-        
-    # Setup Java for Maven
-    - name: Setup Java JDK
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    # Setup Android SDK (required for Gradle Android build)
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
-    - name: Install Android SDK packages
-      run: |
-        yes | sdkmanager --licenses
-        sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-
-    - name: Configure Gradle with JFrog CLI
-      working-directory: ./gradle-android-sample
-      run: |
-        jf gradle-config \
-          --repo-resolve="${{ env.MAVEN_VIRTUAL_REPO }}" \
-          --server-id-resolve=$SERVER_ID \
-          --repo-deploy="${{ env.MAVEN_VIRTUAL_REPO }}" \
-          --server-id-deploy=$SERVER_ID \
-          --use-wrapper=true \
-          --uses-plugin=true
-
-    - name: Build Gradle Android Project and publish artifacts
-      working-directory: ./gradle-android-sample
-      run: |
-        jf gradle clean assembleRelease artifactoryPublish \
-          --build-name="Gradle-Android-Sample-Build" \
-          --build-number="${{ github.run_id }}"
-
-    - name: Publish Gradle Android Build Info to Artifactory
-      run: |
-        jf rt build-publish "Gradle-Android-Sample-Build" "${{ github.run_id }}"
-        jf bs Gradle-Android-Sample-Build "${{ github.run_id }}" --fail=false
-
-    # Configure Maven to use Artifactory
-    - name: Configure Maven with JFrog CLI
-      run: |
-        jf mvnc --repo-resolve-releases="alex-maven-virtual" \
-                --repo-resolve-snapshots="alex-maven-virtual" \
-                --repo-deploy-releases="alex-maven-virtual" \
-                --repo-deploy-snapshots="alex-maven-virtual" \
-                --server-id-resolve=$SERVER_ID \
-                --server-id-deploy=$SERVER_ID
-
-    # Build Maven Project and deploy artifacts
-    - name: Build Maven Project
-      working-directory: ./maven-sample
-      run: |
-        jf rt mvn install \
-          --build-name="Maven-Sample-Build" \
-          --build-number="${{ github.run_id }}"
-
-    # Publish Maven Build Info to Artifactory
-    - name: Publish Maven Build Info to Artifactory
-      run: |
-        jf rt build-publish "Maven-Sample-Build" "${{ github.run_id }}"
-        jf bs Maven-Sample-Build "${{ github.run_id }}" --fail=false
-
-    # Setup Node.js
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-
-    # Install Dependencies and Run Build
-    - name: Install Dependencies and Build NPM Project
-      working-directory: ./npm-sample
-      run: |
-        jf npm-config --repo-resolve=alex-npm-virtual --repo-deploy=alex-npm-virtual --server-id-resolve=$SERVER_ID
-        jf npm install  \
-          --build-name="NPM-Sample-Build" \
-          --build-number="${{ github.run_id }}"
-
-    # Publish to Artifactory NPM Repo
-    - name: Publish NPM Package to Artifactory
-      working-directory: ./npm-sample
-      run: |
-        jf npm publish \
-          --build-name="NPM-Sample-Build" \
-          --build-number="${{ github.run_id }}"
-
-    # Publish NPM Build Info
-    - name: Publish NPM Build Info to Artifactory
-      run: |
-        jf rt build-publish "NPM-Sample-Build" "${{ github.run_id }}"
-        jf bs NPM-Sample-Build "${{ github.run_id }}" --fail=false
+      - name: Build Summary
+        if: always()
+        run: |
+          IMAGE="$IMAGE_REGISTRY/$DOCKER_REPO/$IMAGE_NAME:$IMAGE_TAG"
+          echo "### Runtime Maven Sample" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image: \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Build Info: ${{ vars.JFROG_URL }}/ui/builds/$BUILD_NAME/${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Kubernetes Pod: \`$K8S_NAMESPACE/$K8S_POD_NAME\`" >> "$GITHUB_STEP_SUMMARY"
