@@ -53,6 +53,8 @@ jobs:
           JF_URL: ${{ env.JF_URL }}
           JFROG_URL: ${{ env.JFROG_URL }}
           JF_ACCESS_TOKEN: ${{ env.JF_ACCESS_TOKEN }}
+        with:
+          version: 2.103.0
 
       - name: Ping AppTrust
         run: jf apptrust ping
@@ -157,6 +159,8 @@ jobs:
           JF_URL: ${{ env.JF_URL }}
           JFROG_URL: ${{ env.JFROG_URL }}
           JF_ACCESS_TOKEN: ${{ env.JF_ACCESS_TOKEN }}
+        with:
+          version: 2.103.0
       - name: Promote to PROD
         run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" PROD --promotion-type copy --sync
       - name: Mark version RELEASED
