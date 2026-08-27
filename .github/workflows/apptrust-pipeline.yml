@@ -16,6 +16,7 @@ on:
 env:
   JF_URL: ${{ vars.JFROG_URL || vars.JF_URL || secrets.JF_URL }}
   JFROG_URL: ${{ vars.JFROG_URL || vars.JF_URL || secrets.JF_URL }}
+  JF_OIDC_PROVIDER: ${{ vars.JF_OIDC_PROVIDER || 'alexwang-github' }}
   JF_PROJECT: apptrust-demo
   APP_KEY: hello-service
   APP_VERSION: ${{ github.event.inputs.app_version || format('1.0.{0}', github.run_number) }}
@@ -41,8 +42,8 @@ jobs:
             echo "JF_URL is not configured. Set repo variable JFROG_URL or JF_URL, or secret JF_URL."
             exit 1
           fi
-          if [ -z "${{ vars.JF_OIDC_PROVIDER }}" ]; then
-            echo "JF_OIDC_PROVIDER repo variable is not configured."
+          if [ -z "$JF_OIDC_PROVIDER" ]; then
+            echo "JF_OIDC_PROVIDER is empty. Set repo variable JF_OIDC_PROVIDER or update the workflow default."
             exit 1
           fi
 
@@ -52,7 +53,7 @@ jobs:
           JF_URL: ${{ env.JF_URL }}
           JFROG_URL: ${{ env.JFROG_URL }}
         with:
-          oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER }}
+          oidc-provider-name: ${{ env.JF_OIDC_PROVIDER }}
 
       - name: Ping AppTrust
         run: jf apptrust ping
@@ -147,8 +148,8 @@ jobs:
             echo "JF_URL is not configured. Set repo variable JFROG_URL or JF_URL, or secret JF_URL."
             exit 1
           fi
-          if [ -z "${{ vars.JF_OIDC_PROVIDER }}" ]; then
-            echo "JF_OIDC_PROVIDER repo variable is not configured."
+          if [ -z "$JF_OIDC_PROVIDER" ]; then
+            echo "JF_OIDC_PROVIDER is empty. Set repo variable JF_OIDC_PROVIDER or update the workflow default."
             exit 1
           fi
 
@@ -157,7 +158,7 @@ jobs:
           JF_URL: ${{ env.JF_URL }}
           JFROG_URL: ${{ env.JFROG_URL }}
         with:
-          oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER }}
+          oidc-provider-name: ${{ env.JF_OIDC_PROVIDER }}
       - name: Promote to PROD
         run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" PROD --promotion-type copy --sync
       - name: Mark version RELEASED
