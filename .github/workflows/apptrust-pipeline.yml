@@ -16,8 +16,7 @@ on:
 env:
   JF_URL: ${{ vars.APPTRUST_JFROG_URL || vars.JF_URL || secrets.JF_URL || 'https://soleng.jfrog.io' }}
   JFROG_URL: ${{ vars.APPTRUST_JFROG_URL || vars.JF_URL || secrets.JF_URL || 'https://soleng.jfrog.io' }}
-  JF_OIDC_PROVIDER: ${{ vars.JF_OIDC_PROVIDER || 'alexwang-github' }}
-  JF_OIDC_AUDIENCE: ${{ vars.JF_OIDC_AUDIENCE || 'jfrog-github' }}
+  JF_ACCESS_TOKEN: ${{ secrets.APPTRUST_ACCESS_TOKEN || secrets.ARTIFACTORY_ACCESS_TOKEN || secrets.JF_ACCESS_TOKEN }}
   JF_PROJECT: apptrust-demo
   APP_KEY: hello-service
   APP_VERSION: ${{ github.event.inputs.app_version || format('1.0.{0}', github.run_number) }}
@@ -43,23 +42,17 @@ jobs:
             echo "JF_URL is not configured. Set repo variable APPTRUST_JFROG_URL or update the workflow default."
             exit 1
           fi
-          if [ -z "$JF_OIDC_PROVIDER" ]; then
-            echo "JF_OIDC_PROVIDER is empty. Set repo variable JF_OIDC_PROVIDER or update the workflow default."
-            exit 1
-          fi
-          if [ -z "$JF_OIDC_AUDIENCE" ]; then
-            echo "JF_OIDC_AUDIENCE is empty. Set repo variable JF_OIDC_AUDIENCE or update the workflow default."
+          if [ -z "$JF_ACCESS_TOKEN" ]; then
+            echo "JF_ACCESS_TOKEN is not configured. Set secret APPTRUST_ACCESS_TOKEN, ARTIFACTORY_ACCESS_TOKEN, or JF_ACCESS_TOKEN."
             exit 1
           fi
 
-      - name: Set up JFrog CLI with OIDC
+      - name: Set up JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
         env:
           JF_URL: ${{ env.JF_URL }}
           JFROG_URL: ${{ env.JFROG_URL }}
-        with:
-          oidc-provider-name: ${{ env.JF_OIDC_PROVIDER }}
-          oidc-audience: ${{ env.JF_OIDC_AUDIENCE }}
+          JF_ACCESS_TOKEN: ${{ env.JF_ACCESS_TOKEN }}
 
       - name: Ping AppTrust
         run: jf apptrust ping
@@ -154,12 +147,8 @@ jobs:
             echo "JF_URL is not configured. Set repo variable APPTRUST_JFROG_URL or update the workflow default."
             exit 1
           fi
-          if [ -z "$JF_OIDC_PROVIDER" ]; then
-            echo "JF_OIDC_PROVIDER is empty. Set repo variable JF_OIDC_PROVIDER or update the workflow default."
-            exit 1
-          fi
-          if [ -z "$JF_OIDC_AUDIENCE" ]; then
-            echo "JF_OIDC_AUDIENCE is empty. Set repo variable JF_OIDC_AUDIENCE or update the workflow default."
+          if [ -z "$JF_ACCESS_TOKEN" ]; then
+            echo "JF_ACCESS_TOKEN is not configured. Set secret APPTRUST_ACCESS_TOKEN, ARTIFACTORY_ACCESS_TOKEN, or JF_ACCESS_TOKEN."
             exit 1
           fi
 
@@ -167,9 +156,7 @@ jobs:
         env:
           JF_URL: ${{ env.JF_URL }}
           JFROG_URL: ${{ env.JFROG_URL }}
-        with:
-          oidc-provider-name: ${{ env.JF_OIDC_PROVIDER }}
-          oidc-audience: ${{ env.JF_OIDC_AUDIENCE }}
+          JF_ACCESS_TOKEN: ${{ env.JF_ACCESS_TOKEN }}
       - name: Promote to PROD
         run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" PROD --promotion-type copy --sync
       - name: Mark version RELEASED
