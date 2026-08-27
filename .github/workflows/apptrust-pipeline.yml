@@ -89,7 +89,7 @@ jobs:
       - name: Create AppTrust version
         run: |
           jf apptrust version-create "$APP_KEY" "$APP_VERSION" \
-            --source-type-builds "name=$BUILD_NAME, id=$APP_VERSION" \
+            --source-type-builds "name=$BUILD_NAME,id=$APP_VERSION" \
             --tag "ci-${{ github.run_number }}" \
             --sync
 
