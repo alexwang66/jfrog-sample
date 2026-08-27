@@ -14,8 +14,8 @@ on:
       - "apptrust-sample/**"
 
 env:
-  JF_URL: ${{ vars.JFROG_URL || vars.JF_URL || secrets.JF_URL }}
-  JFROG_URL: ${{ vars.JFROG_URL || vars.JF_URL || secrets.JF_URL }}
+  JF_URL: ${{ vars.APPTRUST_JFROG_URL || vars.JF_URL || secrets.JF_URL || 'https://soleng.jfrog.io' }}
+  JFROG_URL: ${{ vars.APPTRUST_JFROG_URL || vars.JF_URL || secrets.JF_URL || 'https://soleng.jfrog.io' }}
   JF_OIDC_PROVIDER: ${{ vars.JF_OIDC_PROVIDER || 'alexwang-github' }}
   JF_OIDC_AUDIENCE: ${{ vars.JF_OIDC_AUDIENCE || 'jfrog-github' }}
   JF_PROJECT: apptrust-demo
@@ -40,7 +40,7 @@ jobs:
       - name: Validate JFrog configuration
         run: |
           if [ -z "$JF_URL" ]; then
-            echo "JF_URL is not configured. Set repo variable JFROG_URL or JF_URL, or secret JF_URL."
+            echo "JF_URL is not configured. Set repo variable APPTRUST_JFROG_URL or update the workflow default."
             exit 1
           fi
           if [ -z "$JF_OIDC_PROVIDER" ]; then
@@ -151,7 +151,7 @@ jobs:
       - name: Validate JFrog configuration
         run: |
           if [ -z "$JF_URL" ]; then
-            echo "JF_URL is not configured. Set repo variable JFROG_URL or JF_URL, or secret JF_URL."
+            echo "JF_URL is not configured. Set repo variable APPTRUST_JFROG_URL or update the workflow default."
             exit 1
           fi
           if [ -z "$JF_OIDC_PROVIDER" ]; then
