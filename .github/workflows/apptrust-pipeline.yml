@@ -98,8 +98,12 @@ jobs:
       - name: Prepare signing key (from GitHub secret)
         run: |
           mkdir -p .keys
-          printf '%s' "${{ secrets.EVIDENCE_PRIVATE_KEY }}" > .keys/evidence.key
+          printf '%b' "${{ secrets.EVIDENCE_PRIVATE_KEY }}" > .keys/evidence.key
           chmod 600 .keys/evidence.key
+          if ! grep -q -- "BEGIN .*PRIVATE KEY" .keys/evidence.key; then
+            echo "EVIDENCE_PRIVATE_KEY is not a PEM private key. Store the PEM contents, or a single-line value with \\n escapes, in the GitHub secret."
+            exit 1
+          fi
 
       - name: Attach SLSA provenance evidence
         working-directory: apptrust-sample
