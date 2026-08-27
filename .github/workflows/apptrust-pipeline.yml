@@ -112,7 +112,6 @@ jobs:
               -e "s|REPLACE_WITH_BASE_IMAGE_DIGEST|sha256:0000000000000000000000000000000000000000000000000000000000000000|g" \
               evidence/slsa-provenance.json > /tmp/slsa.json
           jf evd create-evidence \
-            --project "$JF_PROJECT" \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
             --predicate /tmp/slsa.json \
             --predicate-type "https://slsa.dev/provenance/v1" \
@@ -122,7 +121,6 @@ jobs:
         working-directory: apptrust-sample
         run: |
           jf evd create-evidence \
-            --project "$JF_PROJECT" \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
             --predicate evidence/unit-tests.json \
             --predicate-type "https://jfrog.com/evidence/test-results/v1" \
