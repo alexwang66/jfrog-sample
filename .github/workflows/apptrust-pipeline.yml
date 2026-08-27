@@ -10,10 +10,12 @@ on:
   push:
     branches: [main]
     paths:
+      - ".github/workflows/apptrust-pipeline.yml"
       - "apptrust-sample/**"
 
 env:
-  JF_URL: ${{ vars.JF_URL }}
+  JF_URL: ${{ vars.JFROG_URL || vars.JF_URL || secrets.JF_URL }}
+  JFROG_URL: ${{ vars.JFROG_URL || vars.JF_URL || secrets.JF_URL }}
   JF_PROJECT: apptrust-demo
   APP_KEY: hello-service
   APP_VERSION: ${{ github.event.inputs.app_version || format('1.0.{0}', github.run_number) }}
@@ -33,10 +35,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate JFrog configuration
+        run: |
+          if [ -z "$JF_URL" ]; then
+            echo "JF_URL is not configured. Set repo variable JFROG_URL or JF_URL, or secret JF_URL."
+            exit 1
+          fi
+          if [ -z "${{ vars.JF_OIDC_PROVIDER }}" ]; then
+            echo "JF_OIDC_PROVIDER repo variable is not configured."
+            exit 1
+          fi
+
       - name: Set up JFrog CLI with OIDC
         uses: jfrog/setup-jfrog-cli@v4
         env:
           JF_URL: ${{ env.JF_URL }}
+          JFROG_URL: ${{ env.JFROG_URL }}
         with:
           oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER }}
 
@@ -126,9 +140,22 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Validate JFrog configuration
+        run: |
+          if [ -z "$JF_URL" ]; then
+            echo "JF_URL is not configured. Set repo variable JFROG_URL or JF_URL, or secret JF_URL."
+            exit 1
+          fi
+          if [ -z "${{ vars.JF_OIDC_PROVIDER }}" ]; then
+            echo "JF_OIDC_PROVIDER repo variable is not configured."
+            exit 1
+          fi
+
       - uses: jfrog/setup-jfrog-cli@v4
         env:
-          JF_URL: ${{ vars.JF_URL }}
+          JF_URL: ${{ env.JF_URL }}
+          JFROG_URL: ${{ env.JFROG_URL }}
         with:
           oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER }}
       - name: Promote to PROD
