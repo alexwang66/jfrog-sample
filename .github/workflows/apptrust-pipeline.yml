@@ -90,8 +90,9 @@ jobs:
 
       - name: Create AppTrust version
         run: |
+          BUILD_STARTED=$(jf api "/artifactory/api/build/$BUILD_NAME/$APP_VERSION?project=$JF_PROJECT" | jq -r .buildInfo.started)
           jf apptrust version-create "$APP_KEY" "$APP_VERSION" \
-            --source-type-builds "name=$BUILD_NAME,id=$APP_VERSION" \
+            --source-type-builds "name=$BUILD_NAME,id=$APP_VERSION,started=$BUILD_STARTED" \
             --tag "ci-${{ github.run_number }}" \
             --sync
 
