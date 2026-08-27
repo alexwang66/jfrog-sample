@@ -14,9 +14,9 @@ on:
       - "apptrust-sample/**"
 
 env:
-  JF_URL: ${{ vars.APPTRUST_JFROG_URL || vars.JF_URL || secrets.JF_URL || 'https://soleng.jfrog.io' }}
-  JFROG_URL: ${{ vars.APPTRUST_JFROG_URL || vars.JF_URL || secrets.JF_URL || 'https://soleng.jfrog.io' }}
-  JF_ACCESS_TOKEN: ${{ secrets.APPTRUST_ACCESS_TOKEN || secrets.ARTIFACTORY_ACCESS_TOKEN || secrets.JF_ACCESS_TOKEN }}
+  JF_URL: ${{ vars.APPTRUST_JFROG_URL || vars.JFROG_URL || vars.JF_URL || secrets.JF_URL }}
+  JFROG_URL: ${{ vars.APPTRUST_JFROG_URL || vars.JFROG_URL || vars.JF_URL || secrets.JF_URL }}
+  JF_ACCESS_TOKEN: ${{ secrets.APPTRUST_ACCESS_TOKEN || secrets.RUNTIME_ARTIFACTORY_ACCESS_TOKEN || secrets.ARTIFACTORY_ACCESS_TOKEN || secrets.JF_ACCESS_TOKEN }}
   JF_PROJECT: apptrust-demo
   APP_KEY: hello-service
   APP_VERSION: ${{ github.event.inputs.app_version || format('1.0.{0}', github.run_number) }}
@@ -39,7 +39,7 @@ jobs:
       - name: Validate JFrog configuration
         run: |
           if [ -z "$JF_URL" ]; then
-            echo "JF_URL is not configured. Set repo variable APPTRUST_JFROG_URL or update the workflow default."
+            echo "JF_URL is not configured. Set repo variable APPTRUST_JFROG_URL, JFROG_URL, or JF_URL."
             exit 1
           fi
           if [ -z "$JF_ACCESS_TOKEN" ]; then
@@ -144,7 +144,7 @@ jobs:
       - name: Validate JFrog configuration
         run: |
           if [ -z "$JF_URL" ]; then
-            echo "JF_URL is not configured. Set repo variable APPTRUST_JFROG_URL or update the workflow default."
+            echo "JF_URL is not configured. Set repo variable APPTRUST_JFROG_URL, JFROG_URL, or JF_URL."
             exit 1
           fi
           if [ -z "$JF_ACCESS_TOKEN" ]; then
