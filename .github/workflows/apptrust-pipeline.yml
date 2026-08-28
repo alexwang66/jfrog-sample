@@ -163,7 +163,5 @@ jobs:
           JF_ACCESS_TOKEN: ${{ env.JF_ACCESS_TOKEN }}
         with:
           version: 2.103.0
-      - name: Promote to PROD
-        run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" PROD --promotion-type copy --sync
       - name: Mark version RELEASED
         run: jf apptrust version-release "$APP_KEY" "$APP_VERSION" --sync
