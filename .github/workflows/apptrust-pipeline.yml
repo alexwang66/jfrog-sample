@@ -21,7 +21,7 @@ env:
   JF_PROJECT: ${{ vars.APPTRUST_PROJECT || 'alex' }}
   APP_KEY: maven-sample
   APP_VERSION: ${{ github.event.inputs.app_version || format('1.0.{0}', github.run_number) }}
-  BUILD_NAME: maven-sample-build
+  BUILD_NAME: hello-service-build
   IMAGE_NAME: maven-sample
   DOCKER_REPO_DEV: ${{ vars.APPTRUST_DOCKER_REPO_DEV || 'alex-docker-dev-local' }}
   KEY_ALIAS: maven-sample-evidence-key
