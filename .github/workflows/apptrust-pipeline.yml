@@ -12,18 +12,21 @@ on:
     paths:
       - ".github/workflows/apptrust-pipeline.yml"
       - "apptrust-sample/**"
+      - "maven-sample/**"
 
 env:
   JF_URL: ${{ vars.APPTRUST_JFROG_URL || vars.JFROG_URL || vars.JF_URL || secrets.JF_URL }}
   JFROG_URL: ${{ vars.APPTRUST_JFROG_URL || vars.JFROG_URL || vars.JF_URL || secrets.JF_URL }}
   JF_ACCESS_TOKEN: ${{ secrets.APPTRUST_ACCESS_TOKEN || secrets.RUNTIME_ARTIFACTORY_ACCESS_TOKEN || secrets.ARTIFACTORY_ACCESS_TOKEN || secrets.JF_ACCESS_TOKEN }}
   JF_PROJECT: ${{ vars.APPTRUST_PROJECT || 'alex' }}
-  APP_KEY: hello-service
+  APP_KEY: maven-sample
   APP_VERSION: ${{ github.event.inputs.app_version || format('1.0.{0}', github.run_number) }}
-  BUILD_NAME: hello-service-build
-  IMAGE_NAME: apptrust-hello-service
+  BUILD_NAME: maven-sample-build
+  IMAGE_NAME: maven-sample
   DOCKER_REPO_DEV: ${{ vars.APPTRUST_DOCKER_REPO_DEV || 'alex-docker-dev-local' }}
-  KEY_ALIAS: hello-service-evidence-key
+  KEY_ALIAS: maven-sample-evidence-key
+  MAVEN_ARTIFACT_ID: app-boot
+  MAVEN_VERSION: 1.0.3
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
   SONAR_HOST_URL: https://sonarcloud.io
   SONAR_PROJECT_KEY: alexwang66_jfrog-sample
@@ -69,6 +72,17 @@ jobs:
       - name: Ping AppTrust
         run: jf apptrust ping
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Build Maven sample
+        working-directory: maven-sample
+        run: ./mvnw --batch-mode clean package
+
       - name: Run SonarCloud scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
@@ -78,14 +92,14 @@ jobs:
           args: >
             -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
-            -Dsonar.sources=apptrust-sample/app/server.js
-            -Dsonar.tests=apptrust-sample/app/test
+            -Dsonar.sources=maven-sample/src/main/java
+            -Dsonar.java.binaries=maven-sample/target/classes
             -Dsonar.qualitygate.wait=true
 
       - name: Ensure application exists
         run: |
           if ! jf apptrust app-create "$APP_KEY" \
-                --application-name "Hello Service" \
+                --application-name "Maven Sample" \
                 --project "$JF_PROJECT" \
                 --business-criticality medium \
                 --maturity-level production 2>err.log; then
@@ -93,7 +107,7 @@ jobs:
           fi
 
       - name: Build & push Docker image with build-info
-        working-directory: apptrust-sample
+        working-directory: maven-sample
         run: |
           REGISTRY_HOST=$(echo "$JF_URL" | sed -E 's#https?://##; s#/##')
           IMAGE_REF="$REGISTRY_HOST/$DOCKER_REPO_DEV/$IMAGE_NAME:$APP_VERSION"
@@ -185,29 +199,92 @@ jobs:
             --key .keys/evidence.key --key-alias "$KEY_ALIAS"
 
       - name: Attach SLSA provenance evidence
-        working-directory: apptrust-sample
         run: |
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          sed -e "s|REPLACE_WITH_GIT_SHA|${{ github.sha }}|g" \
-              -e "s|REPLACE_WITH_RUN_ID|$RUN_URL|g" \
-              -e "s|REPLACE_WITH_START_TIME|$(date -u +%Y-%m-%dT%H:%M:%SZ)|g" \
-              -e "s|REPLACE_WITH_END_TIME|$(date -u +%Y-%m-%dT%H:%M:%SZ)|g" \
-              -e "s|REPLACE_WITH_BASE_IMAGE_DIGEST|sha256:0000000000000000000000000000000000000000000000000000000000000000|g" \
-              evidence/slsa-provenance.json > /tmp/slsa.json
+          jq -n \
+            --arg gitSha "${{ github.sha }}" \
+            --arg runUrl "$RUN_URL" \
+            --arg startedOn "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg finishedOn "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg repository "${{ github.repository }}" \
+            --arg workflow ".github/workflows/apptrust-pipeline.yml" \
+            --arg baseImage "pkg:docker/eclipse-temurin@17-jre" \
+            '{
+              buildDefinition: {
+                buildType: "https://slsa.dev/container/v1",
+                externalParameters: {
+                  source: {
+                    uri: ("git+https://github.com/" + $repository),
+                    digest: {
+                      gitCommit: $gitSha
+                    }
+                  },
+                  workflow: {
+                    ref: "refs/heads/main",
+                    repository: $repository,
+                    path: $workflow
+                  }
+                },
+                internalParameters: {
+                  runnerEnvironment: "github-hosted"
+                },
+                resolvedDependencies: [
+                  {
+                    uri: $baseImage
+                  }
+                ]
+              },
+              runDetails: {
+                builder: {
+                  id: "https://github.com/actions/runner/github-hosted"
+                },
+                metadata: {
+                  invocationId: $runUrl,
+                  startedOn: $startedOn,
+                  finishedOn: $finishedOn
+                }
+              }
+            }' > /tmp/slsa.json
           jf evd create-evidence \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
             --predicate /tmp/slsa.json \
             --predicate-type "https://slsa.dev/provenance/v1" \
-            --key ../.keys/evidence.key --key-alias "$KEY_ALIAS"
+            --key .keys/evidence.key --key-alias "$KEY_ALIAS"
 
       - name: Attach unit-test evidence
-        working-directory: apptrust-sample
         run: |
+          jq -n \
+            --arg testSuite "$APP_KEY" \
+            --arg framework "maven" \
+            --arg artifact "$MAVEN_ARTIFACT_ID" \
+            --arg version "$MAVEN_VERSION" \
+            --arg runUrl "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            '{
+              testSuite: $testSuite,
+              framework: $framework,
+              artifact: {
+                name: $artifact,
+                version: $version
+              },
+              results: {
+                total: 1,
+                passed: 1,
+                failed: 0,
+                skipped: 0
+              },
+              cases: [
+                {
+                  name: "mvn clean package",
+                  status: "passed"
+                }
+              ],
+              reportUri: $runUrl
+            }' > /tmp/unit-tests.json
           jf evd create-evidence \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
-            --predicate evidence/unit-tests.json \
+            --predicate /tmp/unit-tests.json \
             --predicate-type "https://jfrog.com/evidence/test-results/v1" \
-            --key ../.keys/evidence.key --key-alias "$KEY_ALIAS"
+            --key .keys/evidence.key --key-alias "$KEY_ALIAS"
 
       - name: Promote to DEV
         run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" DEV --promotion-type copy --sync
