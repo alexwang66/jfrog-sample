@@ -124,8 +124,9 @@ jobs:
 
       - name: Scan build with Xray
         run: |
-          jf build-scan "$BUILD_NAME" "$APP_VERSION" --project "$JF_PROJECT" --fail=false | tee /tmp/xray-build-scan.log
-          if ! grep -q "No violations found" /tmp/xray-build-scan.log; then
+          jf build-scan "$BUILD_NAME" "$APP_VERSION" --project "$JF_PROJECT" --fail=false | \
+            sed -E 's/\x1B\[[0-9;]*[A-Za-z]//g' | tee /tmp/xray-build-scan.log
+          if ! grep -qiE "No .*violations.*found" /tmp/xray-build-scan.log; then
             echo "Xray scan did not report a clean result; refusing to create passing security-scan evidence."
             exit 1
           fi
@@ -150,7 +151,7 @@ jobs:
       - name: Attach Xray security-scan evidence
         run: |
           PLATFORM_HOST=$(echo "$JF_URL" | sed -E 's#https?://##; s#/##')
-          if ! grep -q "No violations found" /tmp/xray-build-scan.log; then
+          if ! grep -qiE "No .*violations.*found" /tmp/xray-build-scan.log; then
             echo "Xray scan evidence requires a successful scan with no violations."
             exit 1
           fi
