@@ -7,12 +7,6 @@ on:
       - ".github/workflows/build-sample.yml"
       - "maven-sample/**"
       - "runtime-sample/**"
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - ".github/workflows/build-sample.yml"
-      - "maven-sample/**"
-      - "runtime-sample/**"
   workflow_dispatch:
 
 env:
