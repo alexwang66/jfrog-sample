@@ -123,7 +123,12 @@ jobs:
           jf rt build-publish "$BUILD_NAME" "$APP_VERSION" --project "$JF_PROJECT"
 
       - name: Scan build with Xray
-        run: jf build-scan "$BUILD_NAME" "$APP_VERSION" --project "$JF_PROJECT" --fail=false
+        run: |
+          jf build-scan "$BUILD_NAME" "$APP_VERSION" --project "$JF_PROJECT" --fail=false | tee /tmp/xray-build-scan.log
+          if ! grep -q "No violations found" /tmp/xray-build-scan.log; then
+            echo "Xray scan did not report a clean result; refusing to create passing security-scan evidence."
+            exit 1
+          fi
 
       - name: Create AppTrust version
         run: |
@@ -141,6 +146,42 @@ jobs:
             echo "EVIDENCE_PRIVATE_KEY is not a PEM private key. Store the PEM contents, or a single-line value with \\n escapes, in the GitHub secret."
             exit 1
           fi
+
+      - name: Attach Xray security-scan evidence
+        run: |
+          PLATFORM_HOST=$(echo "$JF_URL" | sed -E 's#https?://##; s#/##')
+          if ! grep -q "No violations found" /tmp/xray-build-scan.log; then
+            echo "Xray scan evidence requires a successful scan with no violations."
+            exit 1
+          fi
+          jq -n \
+            --arg scanner "JFrog Xray" \
+            --arg targetType "docker" \
+            --arg image "$IMAGE_NAME" \
+            --arg tag "$APP_VERSION" \
+            --arg policyResult "PASS" \
+            --arg reportUri "$JF_URL/ui/scans-list/repositories/$DOCKER_REPO_DEV?projectKey=$JF_PROJECT" \
+            --arg platformHost "$PLATFORM_HOST" \
+            --rawfile scanOutput /tmp/xray-build-scan.log \
+            '{
+              scanner: {
+                name: $scanner
+              },
+              target: {
+                type: $targetType,
+                image: $image,
+                tag: $tag
+              },
+              policyResult: $policyResult,
+              platformHost: $platformHost,
+              reportUri: $reportUri,
+              scanOutput: $scanOutput
+            }' > /tmp/security-scan.json
+          jf evd create-evidence \
+            --application-key "$APP_KEY" --application-version "$APP_VERSION" \
+            --predicate /tmp/security-scan.json \
+            --predicate-type "https://jfrog.com/evidence/security-scan/v1" \
+            --key .keys/evidence.key --key-alias "$KEY_ALIAS"
 
       - name: Attach SonarQube evidence
         run: |
