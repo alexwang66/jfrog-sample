@@ -11,7 +11,7 @@ The pipeline demonstrates how JFrog AppTrust can govern an application release f
 - SonarCloud code quality validation
 - Signed evidence creation
 - AppTrust application version creation
-- Stage promotion from DEV to QA
+- Stage promotion from DEV to TEST to QA
 - Manual production release approval through GitHub Environment
 
 The key customer message:
@@ -101,6 +101,8 @@ Attach signed evidence:
   - Unit test result
   |
 Promote version to DEV
+  |
+Promote version to TEST
   |
 Promote version to QA
   |
@@ -211,6 +213,7 @@ The workflow promotes the AppTrust application version through stages:
 
 ```bash
 jf apptrust version-promote "$APP_KEY" "$APP_VERSION" DEV --promotion-type copy --sync
+jf apptrust version-promote "$APP_KEY" "$APP_VERSION" TEST --promotion-type copy --sync
 jf apptrust version-promote "$APP_KEY" "$APP_VERSION" QA  --promotion-type copy --sync
 ```
 
@@ -223,6 +226,18 @@ copy
 Customer talking point:
 
 > Promotion is not just a tag change in CI. AppTrust evaluates the application version and its evidence against stage policies before allowing the version to advance.
+
+### TEST Entry Gate
+
+The SolEng Latest environment includes a block policy for the `alex-maven-sample` application:
+
+| Policy | Stage Gate | Rule |
+| --- | --- | --- |
+| `alex-maven-sample-test-entry-no-cvss10` | `TEST` entry gate | Block if Xray finds an applicable CVE with CVSS score exactly `10.0`. |
+
+Customer talking point:
+
+> The TEST gate demonstrates risk-based promotion control. A release candidate can move forward only when Xray does not report an applicable CVSS 10 vulnerability.
 
 ## 9. Production Release Gate
 
@@ -270,7 +285,7 @@ If a policy requires specific evidence, the promotion fails until that evidence 
 
 Example customer explanation:
 
-> If QA requires a security scan, AppTrust checks the evidence attached to the application version. If the evidence is missing or does not satisfy policy, promotion from DEV to QA is blocked.
+> If TEST blocks CVSS 10 findings, AppTrust checks the Xray findings associated with the application version. If an applicable CVSS 10 vulnerability exists, promotion into TEST is blocked.
 
 ## 11. Demo Script
 
@@ -326,6 +341,7 @@ Explain:
 Point to:
 
 - `Promote to DEV`
+- `Promote to TEST`
 - `Promote to QA`
 
 Explain:
@@ -351,7 +367,7 @@ In JFrog AppTrust, show:
 - Application: `alex-maven-sample`
 - Version: the selected version, for example `1.0.30`
 - Evidence attached to the version
-- Stage history: DEV, QA, RELEASED
+- Stage history: DEV, TEST, QA, RELEASED
 - Policy decisions and gate results
 
 Explain:

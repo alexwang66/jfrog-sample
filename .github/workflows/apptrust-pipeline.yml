@@ -335,6 +335,9 @@ jobs:
       - name: Promote to DEV
         run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" DEV --promotion-type copy --sync
 
+      - name: Promote to TEST
+        run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" TEST --promotion-type copy --sync
+
       - name: Promote to QA
         run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" QA --promotion-type copy --sync
 
