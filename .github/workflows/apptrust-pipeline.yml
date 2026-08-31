@@ -182,7 +182,6 @@ jobs:
             }' > /tmp/security-scan.json
           jf evd create-evidence \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
-            --project "$JF_PROJECT" \
             --predicate /tmp/security-scan.json \
             --predicate-type "https://jfrog.com/evidence/security-scan/v1" \
             --key .keys/evidence.key --key-alias "$KEY_ALIAS"
@@ -192,7 +191,6 @@ jobs:
           set +e
           jf evd create-evidence \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
-            --project "$JF_PROJECT" \
             --integration sonar \
             --key .keys/evidence.key --key-alias "$KEY_ALIAS"
           SONAR_EVIDENCE_STATUS=$?
@@ -240,7 +238,6 @@ jobs:
             }' > /tmp/sonar-evidence.json
           jf evd create-evidence \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
-            --project "$JF_PROJECT" \
             --predicate /tmp/sonar-evidence.json \
             --predicate-type "https://sonarsource.com/quality-gate/v1" \
             --key .keys/evidence.key --key-alias "$KEY_ALIAS"
@@ -294,7 +291,6 @@ jobs:
             }' > /tmp/slsa.json
           jf evd create-evidence \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
-            --project "$JF_PROJECT" \
             --predicate /tmp/slsa.json \
             --predicate-type "https://slsa.dev/provenance/v1" \
             --key .keys/evidence.key --key-alias "$KEY_ALIAS"
@@ -330,7 +326,6 @@ jobs:
             }' > /tmp/unit-tests.json
           jf evd create-evidence \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
-            --project "$JF_PROJECT" \
             --predicate /tmp/unit-tests.json \
             --predicate-type "https://jfrog.com/evidence/test-results/v1" \
             --key .keys/evidence.key --key-alias "$KEY_ALIAS"
