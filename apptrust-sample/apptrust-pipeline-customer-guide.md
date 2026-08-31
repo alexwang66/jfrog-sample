@@ -67,7 +67,7 @@ The workflow is configured through GitHub repository variables and secrets.
 | Tool | Configuration |
 | --- | --- |
 | SonarCloud | `SONAR_PROJECT_KEY=alexwang66_jfrog-sample`, `SONAR_ORGANIZATION=alexwang66` |
-| Xray | Runs against the published build-info and must report no violations before security evidence is created. |
+| Xray | Scans the Docker image and must report no violations before security evidence is created. |
 
 ## 4. End-to-End Flow
 
@@ -88,7 +88,7 @@ Build and push Docker image with build-info
   |
 Publish build-info with Git metadata
   |
-Run Xray build scan
+Run Xray Docker image scan
   |
 Create AppTrust application version
   |
@@ -139,12 +139,12 @@ Customer talking point:
 
 > Code quality is evaluated before the application version is released. The Sonar result is later attached as evidence, so release decisions can reference a durable record instead of a transient CI log.
 
-### Xray Build Scan
+### Xray Docker Image Scan
 
-After the Docker image is pushed and build-info is published, the workflow scans the build:
+After the Docker image is pushed and build-info is published, the workflow scans the image:
 
 ```bash
-jf build-scan "$BUILD_NAME" "$APP_VERSION" --project "$JF_PROJECT" --fail=false
+jf docker scan "$IMAGE_REF" --project "$JF_PROJECT" --fail=false
 ```
 
 The pipeline then checks the scan output. If Xray does not report a clean result, the workflow stops and refuses to create passing security evidence.
@@ -302,7 +302,7 @@ Point to:
 - SonarCloud scan
 - Docker image push
 - Build-info publication
-- Xray build scan
+- Xray Docker image scan
 
 Explain:
 

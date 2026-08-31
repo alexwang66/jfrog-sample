@@ -122,12 +122,14 @@ jobs:
           jf rt build-add-git "$BUILD_NAME" "$APP_VERSION" --project "$JF_PROJECT"
           jf rt build-publish "$BUILD_NAME" "$APP_VERSION" --project "$JF_PROJECT"
 
-      - name: Scan build with Xray
+      - name: Scan Docker image with Xray
         run: |
-          jf build-scan "$BUILD_NAME" "$APP_VERSION" --project "$JF_PROJECT" --fail=false | \
+          REGISTRY_HOST=$(echo "$JF_URL" | sed -E 's#https?://##; s#/##')
+          IMAGE_REF="$REGISTRY_HOST/$DOCKER_REPO_DEV/$IMAGE_NAME:$APP_VERSION"
+          jf docker scan "$IMAGE_REF" --project "$JF_PROJECT" --fail=false | \
             sed -E 's/\x1B\[[0-9;]*[A-Za-z]//g' | tee /tmp/xray-build-scan.log
           if ! grep -qiE "No .*violations.*found" /tmp/xray-build-scan.log; then
-            echo "Xray scan did not report a clean result; refusing to create passing security-scan evidence."
+            echo "Xray Docker scan did not report a clean result; refusing to create passing security-scan evidence."
             exit 1
           fi
 
