@@ -189,7 +189,7 @@ EVIDENCE_PRIVATE_KEY
 The key is written temporarily during the workflow and used by:
 
 ```bash
-jf evd create-evidence
+jf evd create
 ```
 
 ### Evidence Types

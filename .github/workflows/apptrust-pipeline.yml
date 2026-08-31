@@ -67,7 +67,7 @@ jobs:
           JFROG_URL: ${{ env.JFROG_URL }}
           JF_ACCESS_TOKEN: ${{ env.JF_ACCESS_TOKEN }}
         with:
-          version: 2.103.0
+          version: 2.122.0
 
       - name: Ping AppTrust
         run: jf apptrust ping
@@ -180,7 +180,7 @@ jobs:
               reportUri: $reportUri,
               scanOutput: $scanOutput
             }' > /tmp/security-scan.json
-          jf evd create-evidence \
+          jf evd create \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
             --predicate /tmp/security-scan.json \
             --predicate-type "https://jfrog.com/evidence/security-scan/v1" \
@@ -189,7 +189,7 @@ jobs:
       - name: Attach SonarQube evidence
         run: |
           set +e
-          jf evd create-evidence \
+          jf evd create \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
             --integration sonar \
             --key .keys/evidence.key --key-alias "$KEY_ALIAS"
@@ -236,7 +236,7 @@ jobs:
                 runUrl: $runUrl
               }
             }' > /tmp/sonar-evidence.json
-          jf evd create-evidence \
+          jf evd create \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
             --predicate /tmp/sonar-evidence.json \
             --predicate-type "https://sonarsource.com/quality-gate/v1" \
@@ -289,7 +289,7 @@ jobs:
                 }
               }
             }' > /tmp/slsa.json
-          jf evd create-evidence \
+          jf evd create \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
             --predicate /tmp/slsa.json \
             --predicate-type "https://slsa.dev/provenance/v1" \
@@ -324,7 +324,7 @@ jobs:
               ],
               reportUri: $runUrl
             }' > /tmp/unit-tests.json
-          jf evd create-evidence \
+          jf evd create \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
             --predicate /tmp/unit-tests.json \
             --predicate-type "https://jfrog.com/evidence/test-results/v1" \
@@ -362,6 +362,6 @@ jobs:
           JFROG_URL: ${{ env.JFROG_URL }}
           JF_ACCESS_TOKEN: ${{ env.JF_ACCESS_TOKEN }}
         with:
-          version: 2.103.0
+          version: 2.122.0
       - name: Mark version RELEASED
         run: jf apptrust version-release "$APP_KEY" "$APP_VERSION" --sync
