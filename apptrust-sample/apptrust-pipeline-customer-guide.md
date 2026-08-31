@@ -143,7 +143,7 @@ Customer talking point:
 
 ### Xray Docker Image Scan
 
-After the Docker image is pushed and build-info is published, the workflow scans the image:
+After the Docker image is pushed, the workflow records the image digest in build-info and publishes that build-info to JFrog. It then scans the image:
 
 ```bash
 jf docker scan "$IMAGE_REF" --project "$JF_PROJECT" --fail=false
@@ -154,6 +154,20 @@ The pipeline then checks the scan output. If Xray does not report a clean result
 Customer talking point:
 
 > The pipeline does not blindly create security evidence. It only creates passing Xray evidence after validating that the scan result is clean.
+
+### TEST Policy Gate
+
+The TEST entry gate has an AppTrust policy:
+
+```text
+alex-maven-sample-test-entry-no-cvss10
+```
+
+This policy blocks promotion into TEST when Xray reports an applicable CVSS 10 vulnerability for the AppTrust application version.
+
+Customer talking point:
+
+> DEV promotion proves the version was created with signed evidence. TEST promotion adds a security gate: the version cannot enter TEST if the Xray result contains a CVSS 10 issue.
 
 ## 6. AppTrust Application Version
 

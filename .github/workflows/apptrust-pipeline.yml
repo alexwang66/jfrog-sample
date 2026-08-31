@@ -112,7 +112,15 @@ jobs:
           REGISTRY_HOST=$(echo "$JF_URL" | sed -E 's#https?://##; s#/##')
           IMAGE_REF="$REGISTRY_HOST/$DOCKER_REPO_DEV/$IMAGE_NAME:$APP_VERSION"
           docker build -t "$IMAGE_REF" .
-          jf docker push "$IMAGE_REF" \
+          docker push "$IMAGE_REF"
+          IMAGE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_REF" | awk -F@ '{print $2}')
+          if [ -z "$IMAGE_DIGEST" ]; then
+            echo "Failed to resolve pushed Docker image digest for $IMAGE_REF"
+            exit 1
+          fi
+          printf '%s@%s\n' "$IMAGE_REF" "$IMAGE_DIGEST" > /tmp/apptrust-image-file.txt
+          jf rt build-docker-create "$DOCKER_REPO_DEV" \
+            --image-file /tmp/apptrust-image-file.txt \
             --project "$JF_PROJECT" \
             --build-name "$BUILD_NAME" \
             --build-number "$APP_VERSION"
