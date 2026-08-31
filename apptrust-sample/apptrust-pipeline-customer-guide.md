@@ -143,7 +143,7 @@ Customer talking point:
 
 ### Xray Docker Image Scan
 
-After the Docker image is pushed, the workflow records the image digest in build-info and publishes that build-info to JFrog. It then scans the image:
+After the Docker image is pushed, the workflow publishes Docker build-info to JFrog. It then scans the image:
 
 ```bash
 jf docker scan "$IMAGE_REF" --project "$JF_PROJECT" --fail=false
