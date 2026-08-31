@@ -19,12 +19,12 @@ env:
   JFROG_URL: ${{ vars.JFROG_URL_SOLENG_LATEST }}
   JF_ACCESS_TOKEN: ${{ secrets.SOLENG_LATEST_TOKEN }}
   JF_PROJECT: ${{ vars.APPTRUST_PROJECT || 'alex' }}
-  APP_KEY: maven-sample
+  APP_KEY: alex-maven-sample
   APP_VERSION: ${{ github.event.inputs.app_version || format('1.0.{0}', github.run_number) }}
-  BUILD_NAME: hello-service-build
-  IMAGE_NAME: maven-sample
+  BUILD_NAME: alex-maven-sample-build
+  IMAGE_NAME: alex-maven-sample
   DOCKER_REPO_DEV: ${{ vars.APPTRUST_DOCKER_REPO_DEV || 'alex-docker-dev-local' }}
-  KEY_ALIAS: hello-service-evidence-key
+  KEY_ALIAS: alex-maven-sample-evidence-key
   MAVEN_ARTIFACT_ID: app-boot
   MAVEN_VERSION: 1.0.3
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -99,7 +99,7 @@ jobs:
       - name: Ensure application exists
         run: |
           if ! jf apptrust app-create "$APP_KEY" \
-                --application-name "Maven Sample" \
+                --application-name "Alex Maven Sample" \
                 --project "$JF_PROJECT" \
                 --business-criticality medium \
                 --maturity-level production 2>err.log; then

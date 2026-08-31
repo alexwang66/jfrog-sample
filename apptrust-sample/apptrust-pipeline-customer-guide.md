@@ -56,11 +56,11 @@ The workflow is configured through GitHub repository variables and secrets.
 
 | Name | Value |
 | --- | --- |
-| AppTrust application key | `maven-sample` |
-| AppTrust display name | `Maven Sample` |
-| Build info name | `hello-service-build` |
-| Docker image name | `maven-sample` |
-| Evidence signing key alias | `hello-service-evidence-key` |
+| AppTrust application key | `alex-maven-sample` |
+| AppTrust display name | `Alex Maven Sample` |
+| Build info name | `alex-maven-sample-build` |
+| Docker image name | `alex-maven-sample` |
+| Evidence signing key alias | `alex-maven-sample-evidence-key` |
 
 ### Quality Tooling
 
@@ -159,7 +159,7 @@ The workflow ensures the AppTrust application exists:
 
 ```bash
 jf apptrust app-create "$APP_KEY" \
-  --application-name "Maven Sample" \
+  --application-name "Alex Maven Sample" \
   --project "$JF_PROJECT" \
   --business-criticality medium \
   --maturity-level production
@@ -292,7 +292,7 @@ Provide a SemVer application version, for example:
 
 Explain:
 
-> We are creating a governed application version for `maven-sample`. This release will build the app, scan it, attach evidence, promote it through stages, and then wait for production approval.
+> We are creating a governed application version for `alex-maven-sample`. This release will build the app, scan it, attach evidence, promote it through stages, and then wait for production approval.
 
 ### Step 2: Show Build And Scan
 
@@ -348,7 +348,7 @@ Explain:
 
 In JFrog AppTrust, show:
 
-- Application: `maven-sample`
+- Application: `alex-maven-sample`
 - Version: the selected version, for example `1.0.30`
 - Evidence attached to the version
 - Stage history: DEV, QA, RELEASED
