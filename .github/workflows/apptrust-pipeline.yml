@@ -135,10 +135,12 @@ jobs:
 
       - name: Create AppTrust version
         run: |
-          jf apptrust version-create "$APP_KEY" "$APP_VERSION" \
-            --source-type-artifacts "path=$DOCKER_REPO_DEV/$IMAGE_NAME/$APP_VERSION/manifest.json" \
-            --tag "ci-${{ github.run_number }}" \
-            --sync
+          if ! jf apptrust version-create "$APP_KEY" "$APP_VERSION" \
+                --source-type-artifacts "path=$DOCKER_REPO_DEV/$IMAGE_NAME/$APP_VERSION/manifest.json" \
+                --tag "ci-${{ github.run_number }}" \
+                --sync 2>err.log; then
+            grep -qiE "already exists|409" err.log || { cat err.log; exit 1; }
+          fi
 
       - name: Prepare signing key (from GitHub secret)
         run: |
