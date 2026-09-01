@@ -152,10 +152,19 @@ jobs:
           echo "image_digest=$IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
 
       - name: Generate GitHub build provenance attestation
+        id: github-attestation
         uses: actions/attest-build-provenance@v1
         with:
           subject-name: ${{ steps.build-and-push.outputs.subject_name }}
           subject-digest: ${{ steps.build-and-push.outputs.image_digest }}
+
+      - name: Register GitHub attestation for JFrog Evidence collection
+        run: |
+          if [ -z "${{ steps.github-attestation.outputs.bundle-path }}" ]; then
+            echo "GitHub attestation action did not return bundle-path."
+            exit 1
+          fi
+          printf '%s\n' "${{ steps.github-attestation.outputs.bundle-path }}" >> "$RUNNER_TEMP/created_attestation_paths.txt"
 
       - name: Collect VCS metadata & publish build-info
         run: |

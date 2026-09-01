@@ -215,7 +215,7 @@ jf evd create
 
 | Evidence | Predicate Type | Purpose |
 | --- | --- | --- |
-| GitHub build provenance attestation | GitHub Artifact Attestation | Uses GitHub OIDC to attest the container image digest; JFrog setup action collects it as JFrog Evidence. |
+| GitHub build provenance attestation | GitHub Artifact Attestation | Uses GitHub OIDC to attest the container image digest; the workflow registers the attestation bundle for JFrog setup action to collect as JFrog Evidence. |
 | Xray security scan | `https://jfrog.com/evidence/security-scan/v1` | Proves the release candidate passed JFrog Xray security validation. |
 | Sonar quality gate | `https://sonarsource.com/quality-gate/v1` | Captures SonarCloud analysis, quality gate, repository, commit, and run URL. |
 | SLSA provenance | `https://slsa.dev/provenance/v1` | Records build origin, Git commit, workflow path, runner environment, and base image. |
