@@ -219,7 +219,7 @@ jf evd create
 | Xray security scan | `https://jfrog.com/evidence/security-scan/v1` | Proves the release candidate passed JFrog Xray security validation. |
 | Sonar quality gate | `https://sonarsource.com/quality-gate/v1` | Captures SonarCloud quality gate status, ignored condition flag, and evaluated metric conditions. |
 | SLSA provenance | `https://slsa.dev/provenance/v1` | Records build origin, Git commit, workflow path, runner environment, and base image. |
-| Unit test result | `https://jfrog.com/evidence/test-results/v1` | Captures test framework, artifact, version, and test result summary. |
+| JUnit test result | `http://junit.org/test-results` | Captures Maven Surefire JUnit XML results as a consolidated test report with `provider-id` set to `junit`. |
 
 Customer talking point:
 

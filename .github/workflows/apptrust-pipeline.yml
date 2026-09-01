@@ -323,37 +323,75 @@ jobs:
 
       - name: Attach unit-test evidence
         run: |
-          jq -n \
-            --arg testSuite "$APP_KEY" \
-            --arg framework "maven" \
-            --arg artifact "$MAVEN_ARTIFACT_ID" \
-            --arg version "$MAVEN_VERSION" \
-            --arg runUrl "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            '{
-              testSuite: $testSuite,
-              framework: $framework,
-              artifact: {
-                name: $artifact,
-                version: $version
-              },
-              results: {
-                total: 1,
-                passed: 1,
-                failed: 0,
-                skipped: 0
-              },
-              cases: [
-                {
-                  name: "mvn clean package",
-                  status: "passed"
-                }
-              ],
-              reportUri: $runUrl
-            }' > /tmp/unit-tests.json
+          python3 - <<'PY'
+          import glob
+          import json
+          import sys
+          import xml.etree.ElementTree as ET
+          from datetime import datetime, timezone
+
+          report_files = sorted(glob.glob("maven-sample/target/surefire-reports/TEST-*.xml"))
+          if not report_files:
+              print("No JUnit XML reports found under maven-sample/target/surefire-reports", file=sys.stderr)
+              sys.exit(1)
+
+          total_tests = 0
+          total_failures = 0
+          total_errors = 0
+          total_skipped = 0
+          total_time = 0.0
+          test_suites = []
+
+          for report_file in report_files:
+              root = ET.parse(report_file).getroot()
+              total_tests += int(root.attrib.get("tests", "0"))
+              total_failures += int(root.attrib.get("failures", "0"))
+              total_errors += int(root.attrib.get("errors", "0"))
+              total_skipped += int(root.attrib.get("skipped", "0"))
+              total_time += float(root.attrib.get("time", "0") or "0")
+
+              for case in root.findall("testcase"):
+                  status = "passed"
+                  if case.find("failure") is not None:
+                      status = "failed"
+                  elif case.find("error") is not None:
+                      status = "error"
+                  elif case.find("skipped") is not None:
+                      status = "skipped"
+
+                  test_suites.append({
+                      "name": case.attrib.get("name", ""),
+                      "class": case.attrib.get("classname", root.attrib.get("name", "")),
+                      "time": case.attrib.get("time", "0"),
+                      "status": status
+                  })
+
+          passed_tests = total_tests - total_failures - total_errors - total_skipped
+          success_rate = round((passed_tests / total_tests) * 100, 2) if total_tests else 0
+          predicate = {
+              "testReport": {
+                  "summary": {
+                      "totalTests": total_tests,
+                      "totalFailures": total_failures,
+                      "totalErrors": total_errors,
+                      "totalSkipped": total_skipped,
+                      "successRate": success_rate,
+                      "totalTime": f"{total_time:.3f}",
+                      "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                  },
+                  "testSuites": test_suites
+              }
+          }
+
+          with open("/tmp/junit-results.json", "w", encoding="utf-8") as output:
+              json.dump(predicate, output, indent=2)
+              output.write("\n")
+          PY
           jf evd create \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
-            --predicate /tmp/unit-tests.json \
-            --predicate-type "https://jfrog.com/evidence/test-results/v1" \
+            --predicate /tmp/junit-results.json \
+            --predicate-type "http://junit.org/test-results" \
+            --provider-id "junit" \
             --key .keys/evidence.key --key-alias "$KEY_ALIAS"
 
       - name: Promote to DEV
