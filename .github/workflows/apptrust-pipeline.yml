@@ -112,10 +112,29 @@ jobs:
           REGISTRY_HOST=$(echo "$JF_URL" | sed -E 's#https?://##; s#/##')
           IMAGE_REF="$REGISTRY_HOST/$DOCKER_REPO_DEV/$IMAGE_NAME:$APP_VERSION"
           DOCKER_BUILDKIT=0 docker build -t "$IMAGE_REF" .
+          set +e
           jf docker push "$IMAGE_REF" \
             --project "$JF_PROJECT" \
             --build-name "$BUILD_NAME" \
-            --build-number "$APP_VERSION"
+            --build-number "$APP_VERSION" 2>&1 | tee /tmp/docker-push.log
+          PUSH_STATUS=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$PUSH_STATUS" -ne 0 ]; then
+            echo "Docker push returned $PUSH_STATUS; verifying whether the image manifest was published."
+            MANIFEST_PATH="$DOCKER_REPO_DEV/$IMAGE_NAME/$APP_VERSION/manifest.json"
+            for attempt in 1 2 3 4 5 6; do
+              if jf rt s "$MANIFEST_PATH" --project "$JF_PROJECT" --limit 1 | jq -e 'length == 1' >/dev/null; then
+                echo "Found published Docker manifest at $MANIFEST_PATH; continuing."
+                exit 0
+              fi
+              echo "Manifest not visible yet, retry $attempt/6."
+              sleep 10
+            done
+            echo "Docker push failed and manifest was not found at $MANIFEST_PATH."
+            cat /tmp/docker-push.log
+            exit "$PUSH_STATUS"
+          fi
 
       - name: Collect VCS metadata & publish build-info
         run: |
