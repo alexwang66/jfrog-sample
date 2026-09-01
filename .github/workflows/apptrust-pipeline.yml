@@ -239,53 +239,28 @@ jobs:
 
       - name: Attach SonarQube evidence
         run: |
-          set +e
-          jf evd create \
-            --application-key "$APP_KEY" --application-version "$APP_VERSION" \
-            --integration sonar \
-            --key .keys/evidence.key --key-alias "$KEY_ALIAS"
-          SONAR_EVIDENCE_STATUS=$?
-          set -e
-          if [ "$SONAR_EVIDENCE_STATUS" -eq 0 ]; then
-            exit 0
-          fi
-
-          echo "Built-in Sonar evidence integration is unavailable. Creating custom Sonar evidence predicate."
+          echo "Creating SonarQube quality gate evidence predicate from SonarCloud results."
           CE_TASK_ID=$(awk -F= '/^ceTaskId=/{print $2}' .scannerwork/report-task.txt)
           CE_TASK_URL=$(awk -F= '/^ceTaskUrl=/{print substr($0, index($0, "=") + 1)}' .scannerwork/report-task.txt)
-          DASHBOARD_URL=$(awk -F= '/^dashboardUrl=/{print substr($0, index($0, "=") + 1)}' .scannerwork/report-task.txt)
           TASK_JSON=$(curl -fsS -u "$SONAR_TOKEN:" "$CE_TASK_URL")
           ANALYSIS_ID=$(echo "$TASK_JSON" | jq -r '.task.analysisId')
+          if [ -z "$ANALYSIS_ID" ] || [ "$ANALYSIS_ID" = "null" ]; then
+            echo "Unable to resolve Sonar analysisId from ceTaskUrl."
+            echo "$TASK_JSON" | jq .
+            exit 1
+          fi
           QUALITY_GATE_JSON=$(curl -fsS -u "$SONAR_TOKEN:" \
             "$SONAR_HOST_URL/api/qualitygates/project_status?analysisId=$ANALYSIS_ID")
-          jq -n \
-            --arg projectKey "$SONAR_PROJECT_KEY" \
-            --arg organization "$SONAR_ORGANIZATION" \
-            --arg hostUrl "$SONAR_HOST_URL" \
-            --arg dashboardUrl "$DASHBOARD_URL" \
-            --arg ceTaskId "$CE_TASK_ID" \
-            --arg analysisId "$ANALYSIS_ID" \
-            --arg repository "${{ github.repository }}" \
-            --arg commitSha "${{ github.sha }}" \
-            --arg runUrl "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            --argjson task "$TASK_JSON" \
-            --argjson qualityGate "$QUALITY_GATE_JSON" \
+          echo "$QUALITY_GATE_JSON" | jq \
             '{
-              sonar: {
-                projectKey: $projectKey,
-                organization: $organization,
-                hostUrl: $hostUrl,
-                dashboardUrl: $dashboardUrl,
-                ceTaskId: $ceTaskId,
-                analysisId: $analysisId,
-                task: $task.task,
-                qualityGate: $qualityGate.projectStatus
-              },
-              source: {
-                repository: $repository,
-                commitSha: $commitSha,
-                runUrl: $runUrl
-              }
+              gates: [
+                {
+                  conditions: (.projectStatus.conditions // []),
+                  ignoredConditions: (.projectStatus.ignoredConditions // false),
+                  status: .projectStatus.status,
+                  type: "QUALITY"
+                }
+              ]
             }' > /tmp/sonar-evidence.json
           jf evd create \
             --application-key "$APP_KEY" --application-version "$APP_VERSION" \
