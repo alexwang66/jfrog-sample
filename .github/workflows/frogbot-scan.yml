@@ -44,7 +44,7 @@ jobs:
         #   oidc-provider-name: ""
         env:
           # Full JFrog Platform base URL, e.g. https://mycompany.jfrog.io/ (align with build-sample: vars.JFROG_URL)
-          JF_URL: ${{ vars.JFROG_URL || secrets.JF_URL }}
+          JF_URL: ${{ vars.JFROG_URL_SOLENG_LATEST || secrets.JF_URL }}
           # Prefer the token that matches vars.JFROG_URL on demo.jfrogchina.com.
           JF_ACCESS_TOKEN: ${{ secrets.RUNTIME_ARTIFACTORY_ACCESS_TOKEN || secrets.ARTIFACTORY_ACCESS_TOKEN || secrets.JF_ACCESS_TOKEN }}
           JF_GIT_TOKEN: ${{ github.token }}
