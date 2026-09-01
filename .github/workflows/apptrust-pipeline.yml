@@ -38,6 +38,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      attestations: write
 
     steps:
       - name: Checkout
@@ -107,10 +108,12 @@ jobs:
           fi
 
       - name: Build & push Docker image with build-info
+        id: build-and-push
         working-directory: maven-sample
         run: |
           REGISTRY_HOST=$(echo "$JF_URL" | sed -E 's#https?://##; s#/##')
           IMAGE_REF="$REGISTRY_HOST/$DOCKER_REPO_DEV/$IMAGE_NAME:$APP_VERSION"
+          SUBJECT_NAME="oci://$REGISTRY_HOST/$DOCKER_REPO_DEV/$IMAGE_NAME"
           DOCKER_BUILDKIT=0 docker build -t "$IMAGE_REF" .
           set +e
           jf docker push "$IMAGE_REF" \
@@ -123,18 +126,36 @@ jobs:
           if [ "$PUSH_STATUS" -ne 0 ]; then
             echo "Docker push returned $PUSH_STATUS; verifying whether the image manifest was published."
             MANIFEST_PATH="$DOCKER_REPO_DEV/$IMAGE_NAME/$APP_VERSION/manifest.json"
+            MANIFEST_FOUND=false
             for attempt in 1 2 3 4 5 6; do
               if jf rt s "$MANIFEST_PATH" --project "$JF_PROJECT" --limit 1 | jq -e 'length == 1' >/dev/null; then
                 echo "Found published Docker manifest at $MANIFEST_PATH; continuing."
-                exit 0
+                MANIFEST_FOUND=true
+                break
               fi
               echo "Manifest not visible yet, retry $attempt/6."
               sleep 10
             done
-            echo "Docker push failed and manifest was not found at $MANIFEST_PATH."
-            cat /tmp/docker-push.log
-            exit "$PUSH_STATUS"
+            if [ "$MANIFEST_FOUND" != "true" ]; then
+              echo "Docker push failed and manifest was not found at $MANIFEST_PATH."
+              cat /tmp/docker-push.log
+              exit "$PUSH_STATUS"
+            fi
           fi
+          IMAGE_DIGEST=$(sed -nE 's/.*digest: (sha256:[a-f0-9]+).*/\1/p' /tmp/docker-push.log | tail -1)
+          if [ -z "$IMAGE_DIGEST" ]; then
+            echo "Unable to resolve pushed image digest from docker push output."
+            cat /tmp/docker-push.log
+            exit 1
+          fi
+          echo "subject_name=$SUBJECT_NAME" >> "$GITHUB_OUTPUT"
+          echo "image_digest=$IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
+
+      - name: Generate GitHub build provenance attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ steps.build-and-push.outputs.subject_name }}
+          subject-digest: ${{ steps.build-and-push.outputs.image_digest }}
 
       - name: Collect VCS metadata & publish build-info
         run: |

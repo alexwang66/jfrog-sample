@@ -86,6 +86,8 @@ Create or confirm AppTrust application
   |
 Build and push Docker image with build-info
   |
+Generate GitHub build provenance attestation
+  |
 Publish build-info with Git metadata
   |
 Run Xray Docker image scan
@@ -95,6 +97,7 @@ Create AppTrust application version
 Prepare evidence signing key
   |
 Attach signed evidence:
+  - GitHub build provenance attestation
   - Xray security scan
   - Sonar quality gate
   - SLSA provenance
@@ -212,6 +215,7 @@ jf evd create
 
 | Evidence | Predicate Type | Purpose |
 | --- | --- | --- |
+| GitHub build provenance attestation | GitHub Artifact Attestation | Uses GitHub OIDC to attest the container image digest; JFrog setup action collects it as JFrog Evidence. |
 | Xray security scan | `https://jfrog.com/evidence/security-scan/v1` | Proves the release candidate passed JFrog Xray security validation. |
 | Sonar quality gate | `https://sonarsource.com/quality-gate/v1` | Captures SonarCloud analysis, quality gate, repository, commit, and run URL. |
 | SLSA provenance | `https://slsa.dev/provenance/v1` | Records build origin, Git commit, workflow path, runner environment, and base image. |
@@ -341,6 +345,7 @@ Explain:
 
 Point to evidence steps:
 
+- `Generate GitHub build provenance attestation`
 - `Attach Xray security-scan evidence`
 - `Attach SonarQube evidence`
 - `Attach SLSA provenance evidence`
