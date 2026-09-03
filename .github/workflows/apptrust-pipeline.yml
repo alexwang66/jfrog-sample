@@ -54,7 +54,7 @@ jobs:
             exit 1
           fi
           if [ -z "$JF_ACCESS_TOKEN" ]; then
-            echo "JF_ACCESS_TOKEN is not configured. Set repository secret SOLENG_LATEST_TOKEN."
+            echo "JF_ACCESS_TOKEN is not configured. Set repository secret RUNTIME_ARTIFACTORY_ACCESS_TOKEN."
             exit 1
           fi
           if [ -z "$SONAR_TOKEN" ]; then
@@ -203,6 +203,21 @@ jobs:
             echo "EVIDENCE_PRIVATE_KEY is not a PEM private key. Store the PEM contents, or a single-line value with \\n escapes, in the GitHub secret."
             exit 1
           fi
+
+      - name: Wait for AppTrust evidence target
+        run: |
+          EVIDENCE_TARGET="alex-application-versions/$APP_KEY/$APP_VERSION/release-bundle.json.evd"
+          for attempt in $(seq 1 18); do
+            if jf rt s "$EVIDENCE_TARGET" --project "$JF_PROJECT" --limit 1 | jq -e 'length == 1' >/dev/null; then
+              echo "AppTrust evidence target is visible at $EVIDENCE_TARGET."
+              sleep 30
+              exit 0
+            fi
+            echo "AppTrust evidence target is not visible yet, retry $attempt/18."
+            sleep 10
+          done
+          echo "AppTrust evidence target was not found at $EVIDENCE_TARGET."
+          exit 1
 
       - name: Attach Xray security-scan evidence
         run: |
@@ -442,7 +457,7 @@ jobs:
             exit 1
           fi
           if [ -z "$JF_ACCESS_TOKEN" ]; then
-            echo "JF_ACCESS_TOKEN is not configured. Set repository secret SOLENG_LATEST_TOKEN."
+            echo "JF_ACCESS_TOKEN is not configured. Set repository secret RUNTIME_ARTIFACTORY_ACCESS_TOKEN."
             exit 1
           fi
 
