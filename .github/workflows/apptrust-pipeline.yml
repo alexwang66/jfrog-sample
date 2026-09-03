@@ -194,15 +194,17 @@ jobs:
             grep -qiE "already exists|409" err.log || { cat err.log; exit 1; }
           fi
 
-      - name: Prepare signing key (from GitHub secret)
+      - name: Generate signing key and upload public key
         run: |
           mkdir -p .keys
-          printf '%b' "${{ secrets.EVIDENCE_PRIVATE_KEY }}" > .keys/evidence.key
+          EVIDENCE_KEY_ALIAS="$KEY_ALIAS-${{ github.run_id }}"
+          jf evd generate-key-pair \
+            --key-file-path .keys \
+            --key-file-name evidence \
+            --key-alias "$EVIDENCE_KEY_ALIAS" \
+            --upload-public-key=true
           chmod 600 .keys/evidence.key
-          if ! grep -q -- "BEGIN .*PRIVATE KEY" .keys/evidence.key; then
-            echo "EVIDENCE_PRIVATE_KEY is not a PEM private key. Store the PEM contents, or a single-line value with \\n escapes, in the GitHub secret."
-            exit 1
-          fi
+          echo "EVIDENCE_KEY_ALIAS=$EVIDENCE_KEY_ALIAS" >> "$GITHUB_ENV"
 
       - name: Wait for AppTrust evidence target
         run: |
@@ -254,7 +256,7 @@ jobs:
               --application-key "$APP_KEY" --application-version "$APP_VERSION" \
               --predicate /tmp/security-scan.json \
               --predicate-type "https://jfrog.com/evidence/security-scan/v1" \
-              --key .keys/evidence.key --key-alias "$KEY_ALIAS" && break
+              --key .keys/evidence.key --key-alias "$EVIDENCE_KEY_ALIAS" && break
             if [ "$attempt" = "3" ]; then exit 1; fi
             echo "Evidence upload failed; retrying in 15 seconds ($attempt/3)."
             sleep 15
@@ -290,7 +292,7 @@ jobs:
               --application-key "$APP_KEY" --application-version "$APP_VERSION" \
               --predicate /tmp/sonar-evidence.json \
               --predicate-type "https://sonarsource.com/quality-gate/v1" \
-              --key .keys/evidence.key --key-alias "$KEY_ALIAS" && break
+              --key .keys/evidence.key --key-alias "$EVIDENCE_KEY_ALIAS" && break
             if [ "$attempt" = "3" ]; then exit 1; fi
             echo "Evidence upload failed; retrying in 15 seconds ($attempt/3)."
             sleep 15
@@ -348,7 +350,7 @@ jobs:
               --application-key "$APP_KEY" --application-version "$APP_VERSION" \
               --predicate /tmp/slsa.json \
               --predicate-type "https://slsa.dev/provenance/v1" \
-              --key .keys/evidence.key --key-alias "$KEY_ALIAS" && break
+              --key .keys/evidence.key --key-alias "$EVIDENCE_KEY_ALIAS" && break
             if [ "$attempt" = "3" ]; then exit 1; fi
             echo "Evidence upload failed; retrying in 15 seconds ($attempt/3)."
             sleep 15
@@ -426,7 +428,7 @@ jobs:
               --predicate /tmp/junit-results.json \
               --predicate-type "http://junit.org/test-results" \
               --provider-id "junit" \
-              --key .keys/evidence.key --key-alias "$KEY_ALIAS" && break
+              --key .keys/evidence.key --key-alias "$EVIDENCE_KEY_ALIAS" && break
             if [ "$attempt" = "3" ]; then exit 1; fi
             echo "Evidence upload failed; retrying in 15 seconds ($attempt/3)."
             sleep 15
