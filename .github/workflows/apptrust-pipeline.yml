@@ -13,6 +13,7 @@ on:
       - ".github/workflows/apptrust-pipeline.yml"
       - "apptrust-sample/**"
       - "maven-sample/**"
+      - "npm-sample/**"
 
 env:
   JF_URL: ${{ vars.JFROG_URL_SOLENG_LATEST }}
@@ -107,14 +108,16 @@ jobs:
             grep -qiE "already exists|409" err.log || { cat err.log; exit 1; }
           fi
 
+      - name: Install npm sample dependencies
+        run: npm install --prefix npm-sample --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org
+
       - name: Build & push Docker image with build-info
         id: build-and-push
-        working-directory: maven-sample
         run: |
           REGISTRY_HOST=$(echo "$JF_URL" | sed -E 's#https?://##; s#/##')
           IMAGE_REF="$REGISTRY_HOST/$DOCKER_REPO_DEV/$IMAGE_NAME:$APP_VERSION"
           SUBJECT_NAME="oci://$REGISTRY_HOST/$DOCKER_REPO_DEV/$IMAGE_NAME"
-          DOCKER_BUILDKIT=0 docker build -t "$IMAGE_REF" .
+          DOCKER_BUILDKIT=0 docker build -f apptrust-sample/Dockerfile -t "$IMAGE_REF" .
           set +e
           jf docker push "$IMAGE_REF" \
             --project "$JF_PROJECT" \
