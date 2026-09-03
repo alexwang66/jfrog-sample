@@ -234,11 +234,16 @@ jobs:
               reportUri: $reportUri,
               scanOutput: $scanOutput
             }' > /tmp/security-scan.json
-          jf evd create \
-            --application-key "$APP_KEY" --application-version "$APP_VERSION" \
-            --predicate /tmp/security-scan.json \
-            --predicate-type "https://jfrog.com/evidence/security-scan/v1" \
-            --key .keys/evidence.key --key-alias "$KEY_ALIAS"
+          for attempt in 1 2 3; do
+            jf evd create \
+              --application-key "$APP_KEY" --application-version "$APP_VERSION" \
+              --predicate /tmp/security-scan.json \
+              --predicate-type "https://jfrog.com/evidence/security-scan/v1" \
+              --key .keys/evidence.key --key-alias "$KEY_ALIAS" && break
+            if [ "$attempt" = "3" ]; then exit 1; fi
+            echo "Evidence upload failed; retrying in 15 seconds ($attempt/3)."
+            sleep 15
+          done
 
       - name: Attach SonarQube evidence
         run: |
@@ -265,11 +270,16 @@ jobs:
                 }
               ]
             }' > /tmp/sonar-evidence.json
-          jf evd create \
-            --application-key "$APP_KEY" --application-version "$APP_VERSION" \
-            --predicate /tmp/sonar-evidence.json \
-            --predicate-type "https://sonarsource.com/quality-gate/v1" \
-            --key .keys/evidence.key --key-alias "$KEY_ALIAS"
+          for attempt in 1 2 3; do
+            jf evd create \
+              --application-key "$APP_KEY" --application-version "$APP_VERSION" \
+              --predicate /tmp/sonar-evidence.json \
+              --predicate-type "https://sonarsource.com/quality-gate/v1" \
+              --key .keys/evidence.key --key-alias "$KEY_ALIAS" && break
+            if [ "$attempt" = "3" ]; then exit 1; fi
+            echo "Evidence upload failed; retrying in 15 seconds ($attempt/3)."
+            sleep 15
+          done
 
       - name: Attach SLSA provenance evidence
         run: |
@@ -318,11 +328,16 @@ jobs:
                 }
               }
             }' > /tmp/slsa.json
-          jf evd create \
-            --application-key "$APP_KEY" --application-version "$APP_VERSION" \
-            --predicate /tmp/slsa.json \
-            --predicate-type "https://slsa.dev/provenance/v1" \
-            --key .keys/evidence.key --key-alias "$KEY_ALIAS"
+          for attempt in 1 2 3; do
+            jf evd create \
+              --application-key "$APP_KEY" --application-version "$APP_VERSION" \
+              --predicate /tmp/slsa.json \
+              --predicate-type "https://slsa.dev/provenance/v1" \
+              --key .keys/evidence.key --key-alias "$KEY_ALIAS" && break
+            if [ "$attempt" = "3" ]; then exit 1; fi
+            echo "Evidence upload failed; retrying in 15 seconds ($attempt/3)."
+            sleep 15
+          done
 
       - name: Attach unit-test evidence
         run: |
@@ -390,12 +405,17 @@ jobs:
               json.dump(predicate, output, indent=2)
               output.write("\n")
           PY
-          jf evd create \
-            --application-key "$APP_KEY" --application-version "$APP_VERSION" \
-            --predicate /tmp/junit-results.json \
-            --predicate-type "http://junit.org/test-results" \
-            --provider-id "junit" \
-            --key .keys/evidence.key --key-alias "$KEY_ALIAS"
+          for attempt in 1 2 3; do
+            jf evd create \
+              --application-key "$APP_KEY" --application-version "$APP_VERSION" \
+              --predicate /tmp/junit-results.json \
+              --predicate-type "http://junit.org/test-results" \
+              --provider-id "junit" \
+              --key .keys/evidence.key --key-alias "$KEY_ALIAS" && break
+            if [ "$attempt" = "3" ]; then exit 1; fi
+            echo "Evidence upload failed; retrying in 15 seconds ($attempt/3)."
+            sleep 15
+          done
 
       - name: Promote to DEV
         run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" DEV --promotion-type copy --sync
