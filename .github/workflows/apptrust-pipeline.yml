@@ -16,9 +16,9 @@ on:
       - "npm-sample/**"
 
 env:
-  JF_URL: ${{ vars.JFROG_URL_SOLENG_LATEST }}
-  JFROG_URL: ${{ vars.JFROG_URL_SOLENG_LATEST }}
-  JF_ACCESS_TOKEN: ${{ secrets.SOLENG_LATEST_TOKEN }}
+  JF_URL: ${{ vars.JFROG_URL }}
+  JFROG_URL: ${{ vars.JFROG_URL }}
+  JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
   JF_PROJECT: ${{ vars.APPTRUST_PROJECT || 'alex' }}
   APP_KEY: alex-maven-sample
   APP_VERSION: ${{ github.event.inputs.app_version || format('1.0.{0}', github.run_number) }}
@@ -50,7 +50,7 @@ jobs:
       - name: Validate JFrog configuration
         run: |
           if [ -z "$JF_URL" ]; then
-            echo "JF_URL is not configured. Set repository variable JFROG_URL_SOLENG_LATEST, for example https://solenglatest.jfrog.io/."
+            echo "JF_URL is not configured. Set repository variable JFROG_URL, for example https://solenglatest.jfrog.io/."
             exit 1
           fi
           if [ -z "$JF_ACCESS_TOKEN" ]; then
@@ -418,7 +418,7 @@ jobs:
       - name: Validate JFrog configuration
         run: |
           if [ -z "$JF_URL" ]; then
-            echo "JF_URL is not configured. Set repository variable JFROG_URL_SOLENG_LATEST, for example https://solenglatest.jfrog.io/."
+            echo "JF_URL is not configured. Set repository variable JFROG_URL, for example https://solenglatest.jfrog.io/."
             exit 1
           fi
           if [ -z "$JF_ACCESS_TOKEN" ]; then
