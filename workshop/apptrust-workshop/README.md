@@ -17,7 +17,13 @@ Docker build -> push to Artifactory -> build-info -> AppTrust version
 Code -> Codespaces -> Create codespace on main
 ```
 
-如果需要使用本目录自带的 dev container 配置，可以把 `workshop/apptrust-workshop/.devcontainer` 作为 workshop 专用配置参考；默认 Codespace 也可以直接运行下面的脚本。
+如果 GitHub 询问 dev container 配置，选择：
+
+```text
+.devcontainer/apptrust-workshop/devcontainer.json
+```
+
+`workshop/apptrust-workshop/.devcontainer/devcontainer.json` 保留为 workshop 目录内的参考配置；Codespaces 实际入口放在仓库根目录 `.devcontainer/apptrust-workshop/`。
 
 ## 2. 配置 JFrog 凭据
 
@@ -128,4 +134,3 @@ export JF_ACCESS_TOKEN=<your-access-token>
 ### Evidence 创建失败
 
 确认 Access Token 有 Evidence/AppTrust 权限。`00-init.sh` 会生成 signing key，并把 public key 上传到 JFrog trusted keys。
-
