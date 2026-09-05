@@ -4,7 +4,7 @@
 
 ```text
 Docker build -> push to Artifactory -> build-info -> AppTrust version
--> signed evidence -> DEV -> QA -> release
+-> DEV -> QA -> signed QA evidence -> release
 ```
 
 本 workshop 复用仓库里的 `apptrust-sample`，避免客户在本机安装 Docker、Java、Node 或 JFrog CLI。所有命令都在 Codespace 终端里执行。
@@ -85,8 +85,8 @@ cd workshop/apptrust-workshop
 00-init.sh
 01-build.sh
 02-create-version.sh
-03-attach-evidence.sh
 04-promote.sh
+03-attach-evidence.sh
 05-approve-and-release.sh
 06-verify.sh
 ```
@@ -107,6 +107,8 @@ Evidence 是签名的发布事实，包括：
 - unit test results
 - Xray security scan
 - QA approval
+
+这些 evidence 会在版本进入 QA 后创建，因此在 AppTrust UI 里会归到 QA stage，而不是 Unassigned。
 
 Promotion 会把同一个 application version 推进到 lifecycle stage，并触发 AppTrust policy gate。
 

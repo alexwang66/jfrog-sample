@@ -24,4 +24,4 @@ jf apptrust version-promote "${APP_KEY}" "${APP_VERSION}" "${STAGE_QA}" \
   --sync
 ok "Promoted to ${STAGE_QA}"
 
-ok "Promoted through ${STAGE_DEV} -> ${STAGE_QA}. Next: scripts/05-approve-and-release.sh"
+ok "Promoted through ${STAGE_DEV} -> ${STAGE_QA}. Next: scripts/03-attach-evidence.sh"

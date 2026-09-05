@@ -11,7 +11,7 @@ The pipeline demonstrates how JFrog AppTrust can govern an application release f
 - SonarCloud code quality validation
 - Signed evidence creation
 - AppTrust application version creation
-- Stage promotion from DEV to TEST to QA
+- Stage promotion from DEV to QA
 - Manual production release approval through GitHub Environment
 
 The key customer message:
@@ -96,18 +96,16 @@ Create AppTrust application version
   |
 Prepare evidence signing key
   |
+Promote version to DEV
+  |
+Promote version to QA
+  |
 Attach signed evidence:
   - GitHub build provenance attestation
   - Xray security scan
   - Sonar quality gate
   - SLSA provenance
   - Unit test result
-  |
-Promote version to DEV
-  |
-Promote version to TEST
-  |
-Promote version to QA
   |
 Wait for production approval
   |
@@ -231,7 +229,6 @@ The workflow promotes the AppTrust application version through stages:
 
 ```bash
 jf apptrust version-promote "$APP_KEY" "$APP_VERSION" DEV --promotion-type copy --sync
-jf apptrust version-promote "$APP_KEY" "$APP_VERSION" TEST --promotion-type copy --sync
 jf apptrust version-promote "$APP_KEY" "$APP_VERSION" QA  --promotion-type copy --sync
 ```
 
@@ -353,14 +350,13 @@ Point to evidence steps:
 
 Explain:
 
-> These steps convert CI results into signed release evidence. AppTrust can then use this evidence for policy decisions instead of relying on human interpretation of logs.
+> These steps convert CI results into signed release evidence after the version reaches QA, so the AppTrust UI groups the evidence under the QA stage instead of Unassigned.
 
 ### Step 4: Show Promotion
 
 Point to:
 
 - `Promote to DEV`
-- `Promote to TEST`
 - `Promote to QA`
 
 Explain:
@@ -386,7 +382,7 @@ In JFrog AppTrust, show:
 - Application: `alex-maven-sample`
 - Version: the selected version, for example `1.0.30`
 - Evidence attached to the version
-- Stage history: DEV, TEST, QA, RELEASED
+- Stage history: DEV, QA, RELEASED
 - Policy decisions and gate results
 
 Explain:

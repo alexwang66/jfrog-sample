@@ -221,6 +221,12 @@ jobs:
           echo "AppTrust evidence target was not found at $EVIDENCE_TARGET."
           exit 1
 
+      - name: Promote to DEV
+        run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" DEV --promotion-type copy --sync
+
+      - name: Promote to QA
+        run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" QA --promotion-type copy --sync
+
       - name: Attach Xray security-scan evidence
         run: |
           PLATFORM_HOST=$(echo "$JF_URL" | sed -E 's#https?://##; s#/##')
@@ -433,12 +439,6 @@ jobs:
             echo "Evidence upload failed; retrying in 15 seconds ($attempt/3)."
             sleep 15
           done
-
-      - name: Promote to DEV
-        run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" DEV --promotion-type copy --sync
-
-      - name: Promote to QA
-        run: jf apptrust version-promote "$APP_KEY" "$APP_VERSION" QA --promotion-type copy --sync
 
   release-to-prod:
     needs: build-and-release

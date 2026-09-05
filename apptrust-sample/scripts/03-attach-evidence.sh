@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # ------------------------------------------------------------------------------
-# Step 3: Attach four evidence records to the application version:
+# Step 3: Attach three evidence records to the application version after QA promotion:
 #   1. SLSA provenance   - who built it, from what source, with what tools
 #   2. Unit-test results - test framework attestation
 #   3. Security scan     - Xray results summary
-#   4. QA sign-off       - manual approval before PROD (attached later)
+# QA sign-off is attached later before release.
 # All records are signed with the ECDSA key generated in step 0.
 # ------------------------------------------------------------------------------
 set -euo pipefail
@@ -65,4 +65,4 @@ attach_evidence "${TMP_DIR}/slsa.json"  "https://slsa.dev/provenance/v1"        
 attach_evidence "${TMP_DIR}/tests.json" "https://jfrog.com/evidence/test-results/v1"           "unit-test results"
 attach_evidence "${TMP_DIR}/scan.json"  "https://jfrog.com/evidence/security-scan/v1"          "Xray security scan"
 
-ok "All pre-promotion evidence attached. Next: scripts/04-promote.sh"
+ok "QA-stage evidence attached. Next: scripts/05-approve-and-release.sh"

@@ -105,8 +105,8 @@ Or step through it:
 ./scripts/00-init.sh              # bootstrap app + signing keys
 ./scripts/01-build.sh             # build & push image + publish build-info
 ./scripts/02-create-version.sh    # create AppTrust version (PRE_RELEASE)
-./scripts/03-attach-evidence.sh   # attach the 3 pre-promotion evidence records
 ./scripts/04-promote.sh           # DEV → QA
+./scripts/03-attach-evidence.sh   # attach the 3 QA-stage evidence records
 ./scripts/05-approve-and-release.sh  # QA approval → PROD → RELEASED
 ./scripts/06-verify.sh            # verify signatures + query promotion history
 ```
